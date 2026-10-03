@@ -371,20 +371,10 @@ function LegacyHero({ s, retiring }: { s: CareerSummary; retiring: boolean }) {
           {p.careerYears === 1 ? '' : 's'} ({range(p.firstSeason, p.lastSeason)})
         </span>
       </div>
-      <div className="legacy-peak" aria-label={`Pico de OVR ${s.evolution.peakOvr}, OVR final ${s.evolution.finalOvr}`}>
-        <div className="eyebrow">Pico de OVR</div>
-        <div className="legacy-peak-value">
-          <span className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</span>
-          <span className="faint"> / 100</span>
-        </div>
-        <div className="faint">
-          {s.evolution.peakOvrSeason ? `${s.evolution.peakOvrSeason} · ` : ''}OVR final {s.evolution.finalOvr}
-        </div>
-      </div>
-      <div className="legacy-ring" style={{ ['--p' as string]: s.legacy.score, ['--ring' as string]: ringColor(s.legacy.score) }}>
+      <div className="legacy-ring" style={{ ['--p' as string]: s.evolution.peakOvr, ['--ring' as string]: ringColor(s.evolution.peakOvr) }}>
         <div style={{ textAlign: 'center' }}>
           <div className="eyebrow">Legado</div>
-          <div className="legacy-score">{s.legacy.score}</div>
+          <div className="legacy-score">{s.evolution.peakOvr}</div>
           <div className="faint">/ 100</div>
         </div>
       </div>
