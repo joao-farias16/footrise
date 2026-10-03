@@ -44,6 +44,8 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
+  /* Palavras longas (nomes de clubes e jogadores) quebram em vez de vazar da tela. */
+  overflow-wrap: break-word;
 }
 
 body::before {
@@ -131,6 +133,28 @@ button {
   gap: 12px;
 }
 
+.topbar .icon-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Celulares: o status (salvamento, modo do draft) desce para uma segunda linha da barra
+   em vez de se sobrepor à logo. */
+@media (max-width: 480px) {
+  .topbar {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .topbar-inner {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .topbar-inner > :last-child:not(:empty) {
+    flex: 1 0 100%;
+    justify-content: center !important;
+  }
+}
+
 .stack {
   display: flex;
   flex-direction: column;
@@ -151,21 +175,27 @@ button {
 .grid-2 {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .grid-3 {
   display: grid;
   gap: 14px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Itens de grid não crescem além da coluna por causa de conteúdo largo. */
+.grid-2 > *,
+.grid-3 > * {
+  min-width: 0;
 }
 
 @media (min-width: 760px) {
   .grid-2 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .grid-3 {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -354,6 +384,11 @@ p {
   background: var(--surface-3);
   border: 1px solid var(--line);
   color: var(--text-dim);
+  max-width: 100%;
+}
+
+/* Na barra superior o espaço é disputado: a pílula não quebra linha. */
+.topbar .pill {
   white-space: nowrap;
 }
 
@@ -757,12 +792,16 @@ p {
 .draft-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.draft-layout > * {
+  min-width: 0;
 }
 
 @media (min-width: 980px) {
   .draft-layout {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 320px minmax(0, 1fr);
     align-items: start;
   }
   .draft-build {
@@ -833,12 +872,12 @@ p {
 .legend-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 680px) {
   .legend-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -883,6 +922,10 @@ p {
   align-items: center;
 }
 
+.legend-head > :last-child {
+  min-width: 0;
+}
+
 .legend-name {
   font-family: var(--font-display);
   font-size: 1.45rem;
@@ -893,7 +936,7 @@ p {
 
 .legend-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -974,7 +1017,7 @@ p {
 
 .slot {
   display: grid;
-  grid-template-columns: 46px 1fr auto;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
@@ -1162,7 +1205,7 @@ p {
 
 .fr-card-attrs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 18px;
 }
 
@@ -1196,7 +1239,7 @@ p {
 
 .dna-item {
   display: grid;
-  grid-template-columns: 50px 40px 1fr;
+  grid-template-columns: 50px 40px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
@@ -1248,8 +1291,12 @@ p {
 
 .kv-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.kv {
+  min-width: 0;
 }
 
 .kv {
@@ -1297,29 +1344,34 @@ p {
 .hub-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.hub-grid > * {
+  min-width: 0;
 }
 
 @media (min-width: 980px) {
   .hub-grid {
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 340px minmax(0, 1fr);
     align-items: start;
   }
 }
 
 .stat-tiles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 @media (min-width: 560px) {
   .stat-tiles {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
 .stat-tile {
+  min-width: 0;
   padding: 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
@@ -1342,6 +1394,12 @@ p {
   line-height: 1.05;
 }
 
+@media (max-width: 400px) {
+  .stat-tile .k {
+    letter-spacing: 0.03em;
+  }
+}
+
 .stat-tile .s {
   font-size: 0.8rem;
   color: var(--text-dim);
@@ -1349,7 +1407,7 @@ p {
 
 .meter {
   display: grid;
-  grid-template-columns: 120px 1fr 42px;
+  grid-template-columns: 120px minmax(0, 1fr) 42px;
   gap: 10px;
   align-items: center;
   font-size: 0.9rem;
@@ -1484,6 +1542,7 @@ p {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  min-width: 0;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
@@ -1521,6 +1580,20 @@ p {
   flex-shrink: 0;
 }
 
+/* Celular: os botões do banner descem para uma linha própria em vez de espremer o texto. */
+@media (max-width: 560px) {
+  .banner {
+    flex-wrap: wrap;
+  }
+  .banner > .btn,
+  .banner > .row {
+    flex: 1 1 100%;
+  }
+  .banner > .row > * {
+    flex: 1 1 0;
+  }
+}
+
 .action-bar {
   position: sticky;
   bottom: 0;
@@ -1535,6 +1608,32 @@ p {
 
 .action-bar > * {
   flex: 1 1 220px;
+}
+
+/* Celular: a barra fixa não pode cobrir meia tela. A ação principal ocupa a linha inteira
+   e as secundárias dividem a linha de baixo. */
+@media (max-width: 560px) {
+  .action-bar {
+    gap: 8px;
+    padding-top: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .action-bar > * {
+    flex: 1 1 120px;
+  }
+  .action-bar > :first-child {
+    flex-basis: 100%;
+  }
+  .action-bar .btn-xl {
+    min-height: 52px;
+    font-size: 1.2rem;
+    padding: 10px 16px;
+  }
+  .action-bar .btn:not(.btn-xl) {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+  }
 }
 
 /* ---------- Evento ---------- */
@@ -1645,6 +1744,14 @@ p {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.comp > * {
+  min-width: 0;
+}
+
+.comp > :last-child {
+  text-align: right;
+}
+
 .comp.won {
   background: linear-gradient(135deg, rgba(255, 209, 102, 0.2), rgba(255, 209, 102, 0.05));
   border: 1px solid rgba(255, 209, 102, 0.5);
@@ -1740,7 +1847,7 @@ p {
 
 .breakdown-row {
   display: grid;
-  grid-template-columns: minmax(120px, 170px) 1fr 70px;
+  grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) 70px;
   gap: 10px;
   align-items: center;
   font-size: 0.92rem;
@@ -1767,6 +1874,7 @@ p {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
@@ -1776,7 +1884,7 @@ p {
 
 .history-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
   padding: 14px;
@@ -1819,7 +1927,7 @@ p {
 
 @media (max-width: 560px) {
   .history-card {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
   }
   .history-actions {
     grid-column: 1 / -1;
@@ -1977,6 +2085,7 @@ p {
   width: 100%;
   max-width: 520px;
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
   text-align: left;
   box-shadow: var(--shadow);
@@ -1987,6 +2096,12 @@ p {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .modal-actions > * {
+    flex: 1 1 auto;
+  }
 }
 
 .toast {

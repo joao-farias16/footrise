@@ -106,20 +106,22 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
           )}
           <div className="headline">💰 Total arrecadado em salários: {formatMoney(s.earnings.total)}</div>
           <div className="headline">
-            🎽 Camisa:{' '}
-            {clubNumbers.map((n, i) => (
-              <span key={i}>
-                {i > 0 && ' · '}
-                <strong>{n.number}</strong> no {n.team}
-              </span>
-            ))}
-            {nationalNumber && (
-              <span>
-                {' · '}
-                <strong>{nationalNumber.number}</strong> na seleção
-              </span>
-            )}
-            <span className="faint"> (preferido: {s.player.preferredNumber})</span>
+            <span>
+              🎽 Camisa:{' '}
+              {clubNumbers.map((n, i) => (
+                <span key={i}>
+                  {i > 0 && ' · '}
+                  <strong>{n.number}</strong> no {n.team}
+                </span>
+              ))}
+              {nationalNumber && (
+                <span>
+                  {' · '}
+                  <strong>{nationalNumber.number}</strong> na seleção
+                </span>
+              )}
+              <span className="faint"> (preferido: {s.player.preferredNumber})</span>
+            </span>
           </div>
           {s.totals.injuries > 0 && (
             <div className="headline" style={{ borderLeftColor: 'var(--red)' }}>
