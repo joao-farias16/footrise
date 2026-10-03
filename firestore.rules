@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// FootRise — cada jogador só lê e escreve os próprios dados (users/{uid} com uid == request.auth.uid).
+// Tudo que não está listado aqui é negado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validUsername(name) {
+      return name is string && name.size() >= 2 && name.size() <= 24;
+    }
+
+    // Até ~950 mil caracteres (limite de 1 MiB por documento do Firestore).
+    function validPayload(data) {
+      return data is string && data.size() > 0 && data.size() <= 950000;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'email', 'createdAt'])
+        && request.resource.data.uid == uid
+        && validUsername(request.resource.data.username)
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.createdAt == request.time;
+      // Só o nome de usuário pode mudar depois de criado.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username'])
+        && validUsername(request.resource.data.username);
+      allow delete: if false;
+
+      // Carreira ativa: um único documento por conta.
+      match /active/{docId} {
+        allow read, delete: if isOwner(uid) && docId == 'current';
+        allow create, update: if isOwner(uid) && docId == 'current'
+          && request.resource.data.keys().hasOnly(['careerId', 'updatedAt', 'saveVersion', 'savedAt', 'data'])
+          && request.resource.data.careerId is string
+          && request.resource.data.updatedAt is number
+          && request.resource.data.saveVersion is number
+          && request.resource.data.savedAt == request.time
+          && validPayload(request.resource.data.data);
+      }
+
+      // Carreiras encerradas e salvas no histórico.
+      match /careers/{careerId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['careerId', 'ownerUid', 'summaryVersion', 'savedAt', 'name', 'legacyScore', 'data'])
+          && request.resource.data.careerId == careerId
+          && request.resource.data.ownerUid == uid
+          && request.resource.data.summaryVersion is number
+          && request.resource.data.savedAt is number
+          && request.resource.data.name is string
+          && request.resource.data.legacyScore is number
+          && validPayload(request.resource.data.data);
+      }
+    }
+  }
+}

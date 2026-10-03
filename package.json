@@ -1,0 +1,31 @@
+{
+  "name": "footrise",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FootRise — crie um jogador impossível no draft e viva uma carreira de futebol simulada até o legado.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "emulators": "npx -y firebase-tools@15 emulators:start --only auth,firestore --project demo-footrise",
+    "test:cloud": "npx -y firebase-tools@15 emulators:exec --only auth,firestore --project demo-footrise \"vitest run --config vitest.emulator.config.ts\""
+  },
+  "dependencies": {
+    "firebase": "^12.19.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}
