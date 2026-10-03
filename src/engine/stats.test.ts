@@ -33,12 +33,16 @@ describe('estatísticas por nível e posição', () => {
 
   it('centroavante 94+ com finalização 98 produz como elite', () => {
     expect(computeOverall(ELITE_FINISHER, 'ATA')).toBeGreaterThanOrEqual(94);
-    expect(avg(elite, (r) => r.goals)).toBeGreaterThan(36);
-    expect(avg(elite, (r) => r.goals)).toBeLessThan(55);
-    // Titular saudável com muitos minutos nunca termina com números baixos.
-    for (const r of elite.filter((x) => x.minutes >= 3400)) expect(r.goals).toBeGreaterThanOrEqual(25);
-    // Mas ainda há variação de uma temporada para outra.
+    expect(avg(elite, (r) => r.goals)).toBeGreaterThan(27);
+    expect(avg(elite, (r) => r.goals)).toBeLessThan(42);
+    // Titular saudável com muitos minutos pode ter um ano abaixo, mas nunca números de jogador comum.
+    for (const r of elite.filter((x) => x.minutes >= 3400)) expect(r.goals).toBeGreaterThanOrEqual(15);
+    // Há variação de uma temporada para outra.
     expect(new Set(elite.map((r) => r.goals)).size).toBeGreaterThan(8);
+    // Mais gols que jogos é uma temporada histórica: possível, mas não o padrão.
+    const historic = seasons('ATA', ELITE_FINISHER, 'manchester-city', 200).filter((r) => r.goals > r.apps).length;
+    expect(historic).toBeGreaterThan(0);
+    expect(historic).toBeLessThan(200 * 0.2);
   });
 
   it('finalização pesa: o finalizador marca mais que um atacante físico de overall parecido', () => {

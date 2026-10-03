@@ -22,6 +22,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  updateDoc,
   type Firestore,
 } from 'firebase/firestore';
 import { CAREER } from '../config/balance';
@@ -73,6 +74,12 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
 
 const MAX_DOC_CHARS = 950_000;
 
+/** Nome de usuário aceito pelas regras do Firestore (2–24 caracteres), ou undefined. */
+function validName(name: string | null | undefined): string | undefined {
+  const trimmed = name?.trim().slice(0, 24);
+  return trimmed && trimmed.length >= 2 ? trimmed : undefined;
+}
+
 function toMillis(v: unknown): number | null {
   if (v && typeof v === 'object' && 'toMillis' in v && typeof (v as { toMillis: unknown }).toMillis === 'function') {
     return (v as { toMillis: () => number }).toMillis();
@@ -113,24 +120,42 @@ export function createFirebaseService(settings: FirebaseSettings, appName = '[DE
     return { uid, username: String(d.username ?? ''), email: String(d.email ?? ''), createdAt: toMillis(d.createdAt) };
   }
 
-  async function createProfile(user: User, username: string): Promise<void> {
-    await setDoc(profileRef(user.uid), { uid: user.uid, username, email: user.email ?? '', createdAt: serverTimestamp() });
+  /** Cria o perfil só se ele ainda não existir (o listener de autenticação e o cadastro podem chegar juntos). */
+  async function createProfileIfMissing(user: User, username: string): Promise<void> {
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(profileRef(user.uid));
+      if (!snap.exists()) tx.set(profileRef(user.uid), { uid: user.uid, username, email: user.email ?? '', createdAt: serverTimestamp() });
+    });
   }
 
-  /** Usuário do jogo: o nome vem do perfil no Firestore (recriado se estiver faltando). */
+  /** Nome que o cadastro antigo gerava a partir do e-mail quando o perfil era criado sem o nome escolhido. */
+  const emailDerivedName = (user: User) => validName(user.email?.split('@')[0]) ?? 'Jogador';
+
+  /** Cadastro em andamento neste aparelho: o listener de autenticação usa o nome escolhido. */
+  let pendingSignUpName: string | null = null;
+
+  /**
+   * Usuário do jogo: o nome vem do perfil no Firestore (criado se estiver faltando).
+   * Contas criadas quando o perfil recebia o nome derivado do e-mail recuperam o nome escolhido
+   * no cadastro (guardado no displayName do Auth) — só o campo username é atualizado.
+   */
   async function toCloudUser(user: User, usernameHint?: string): Promise<CloudUser> {
+    const chosen = validName(usernameHint) ?? validName(pendingSignUpName) ?? validName(user.displayName);
     let profile: CloudProfile | null = null;
     try {
       profile = await getProfile(user.uid);
       if (!profile) {
-        const username = (usernameHint ?? user.displayName ?? user.email?.split('@')[0] ?? 'Jogador').slice(0, 24);
-        await createProfile(user, username.length >= 2 ? username : 'Jogador');
+        await createProfileIfMissing(user, chosen ?? emailDerivedName(user));
         profile = await getProfile(user.uid);
+      }
+      if (profile && chosen && profile.username !== chosen && (usernameHint || profile.username === emailDerivedName(user))) {
+        profile = { ...profile, username: chosen };
+        await updateDoc(profileRef(user.uid), { username: chosen });
       }
     } catch {
       /* perfil indisponível: segue com os dados da autenticação */
     }
-    return { uid: user.uid, email: user.email ?? '', username: profile?.username || user.displayName || user.email || 'Jogador' };
+    return { uid: user.uid, email: user.email ?? '', username: profile?.username || chosen || user.email || 'Jogador' };
   }
 
   return {
@@ -143,14 +168,19 @@ export function createFirebaseService(settings: FirebaseSettings, appName = '[DE
 
     signUp: (username, email, password) =>
       guard(async () => {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        pendingSignUpName = username;
         try {
-          await updateProfile(cred.user, { displayName: username });
-        } catch {
-          /* o nome também fica no Firestore */
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          try {
+            await updateProfile(cred.user, { displayName: username });
+          } catch {
+            /* o nome também fica no Firestore */
+          }
+          await createProfileIfMissing(cred.user, username);
+          return await toCloudUser(cred.user, username);
+        } finally {
+          pendingSignUpName = null;
         }
-        await createProfile(cred.user, username);
-        return toCloudUser(cred.user, username);
       }),
 
     signIn: (email, password) =>

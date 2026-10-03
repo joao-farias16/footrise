@@ -102,6 +102,13 @@ export const STATS = {
   relScale: 25,
   relMin: 0.72,
   relMax: 1.25,
+  /**
+   * Retorno decrescente na fatia de gols: acima de goalShareKnee, a fatia cresce com
+   * expoente goalShareCompression. Evita que finalização × acesso × nível × clube forte
+   * se multipliquem até o craque marcar mais gols que jogos em quase toda temporada.
+   */
+  goalShareKnee: 0.25,
+  goalShareCompression: 0.6,
   maxGoalShare: 0.6,
   maxAssistShare: 0.4,
   maxInvolvement: 0.8,
@@ -119,6 +126,9 @@ export const STATS = {
   momentumDecay: 0.85,
   momentumWeight: 0.12,
   momentumCap: 0.25,
+  /** Forma da temporada: desvio do sorteio e quanto ela pesa na produção (temporadas boas, normais e ruins). */
+  seasonFormSd: 0.3,
+  formProduction: 0.5,
 };
 
 export const INJURY_SEVERITY = [

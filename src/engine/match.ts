@@ -133,6 +133,7 @@ export function involvement(player: Pick<PlayerMatchProfile, 'ovr' | 'position' 
   const create = mix(a, p.create);
   let goal = p.goal > 0 ? p.goal * rel(finish, STATS.finishExp) * rel(access, STATS.accessExp) * relative : 0;
   let assist = p.assist * rel(create, STATS.creativeExp) * relative;
+  if (goal > STATS.goalShareKnee) goal = STATS.goalShareKnee * (goal / STATS.goalShareKnee) ** STATS.goalShareCompression;
   goal = Math.min(goal, STATS.maxGoalShare);
   assist = Math.min(assist, STATS.maxAssistShare);
   const total = goal + assist;
@@ -265,7 +266,7 @@ export function playMatch(
   const pos = POSITIONS[player.position];
   const inv = involvement(player, teamStrength);
   const momentum = state.momentum ?? 0;
-  const formMult = clamp(1 + player.form * 0.3 + momentum, 0.6, 1.5) * (player.shareScale ?? 1);
+  const formMult = clamp(1 + player.form * STATS.formProduction + momentum, 0.6, 1.5) * (player.shareScale ?? 1);
   const pGoal = clamp((inv.goal + (inv.goal > 0 ? player.goalBonus : 0)) * formMult, 0, STATS.maxGoalShare);
   const pAssist = clamp(inv.assist * formMult, 0, STATS.maxInvolvement - pGoal);
 

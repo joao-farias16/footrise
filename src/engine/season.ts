@@ -1,4 +1,4 @@
-import { MATCH, NATIONAL } from '../config/balance';
+import { MATCH, NATIONAL, STATS } from '../config/balance';
 import {
   CLUB_WORLD_CUP,
   CONTINENTAL_CUP,
@@ -86,7 +86,7 @@ export function simulateSeason(career: Career, rng: Rng): SeasonSimOutput {
     attributes: career.attributes,
     age: career.age,
     startShare: clamp(expectedStartShare(ovr, club.strength, career.coachTrust, career.position) + m.startShare, 0.02, 0.97),
-    form: clamp(rng.normal(0, 0.2) + (career.morale - 50) / 250 + m.form, -0.6, 0.6),
+    form: clamp(rng.normal(0, STATS.seasonFormSd) + (career.morale - 50) / 250 + m.form, -0.6, 0.6),
     injuryRisk: m.injuryRisk,
     goalBonus: m.goalBonus,
   };

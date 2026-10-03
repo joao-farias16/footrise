@@ -1,10 +1,13 @@
+import { initializeApp } from 'firebase/app';
+import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, signOut, updateProfile } from 'firebase/auth';
+import { connectFirestoreEmulator, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
 import { describe, expect, it } from 'vitest';
 import { autoplayCareer } from '../engine/autoplay';
 import { buildCareerSummary, sanitizeSummary } from '../engine/careerSummary';
 import { hubCareer, profile } from '../engine/testUtils';
 import { sanitizeCareer } from '../state/storage';
 import { createFirebaseService } from './service';
-import { CloudConflictError, CloudError } from './types';
+import { CloudConflictError, CloudError, type CloudUser } from './types';
 
 // Serviço real do jogo (Auth + Firestore) contra o Emulator Suite (npm run test:cloud).
 // Cada "aparelho" é uma instância separada do Firebase app.
@@ -21,6 +24,23 @@ let n = 0;
 const device = () => createFirebaseService(settings, `device-${Date.now()}-${n++}`);
 const email = () => `jogador${Date.now()}${n++}@footrise.dev`;
 
+/**
+ * Conta criada pela versão anterior do cadastro: perfil no Firestore com o nome derivado do
+ * e-mail e (opcionalmente) o nome escolhido guardado só no displayName do Auth.
+ */
+async function legacyAccount(mail: string, displayName: string | null): Promise<string> {
+  const app = initializeApp(settings, `legacy-${Date.now()}-${n++}`);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  connectAuthEmulator(auth, `http://${settings.emulatorHost}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(db, settings.emulatorHost, 8080);
+  const cred = await createUserWithEmailAndPassword(auth, mail, 'segredo123');
+  if (displayName) await updateProfile(cred.user, { displayName });
+  await setDoc(doc(db, 'users', cred.user.uid), { uid: cred.user.uid, username: mail.split('@')[0], email: mail, createdAt: serverTimestamp() });
+  await signOut(auth);
+  return cred.user.uid;
+}
+
 describe('conta', () => {
   it('cria conta com nome de usuário, perfil no Firestore e login/logout', async () => {
     const svc = device();
@@ -35,6 +55,41 @@ describe('conta', () => {
 
     const again = await device().signIn(mail, 'segredo123');
     expect(again).toMatchObject({ uid: user.uid, username: 'Craque10' });
+  });
+
+  it('o nome escolhido no cadastro prevalece com o listener de autenticação ativo (como no app)', async () => {
+    const svc = device();
+    const mail = email();
+    const seen: CloudUser[] = [];
+    const unsub = svc.onAuthChange((u) => {
+      if (u) seen.push(u);
+    });
+    const user = await svc.signUp('João Craque', mail, 'segredo123');
+    for (let i = 0; i < 60 && seen.length === 0; i++) await new Promise((r) => setTimeout(r, 50));
+    unsub();
+    expect(user.username).toBe('João Craque');
+    expect(seen.length).toBeGreaterThan(0);
+    for (const u of seen) expect(u.username).toBe('João Craque');
+    expect((await svc.getProfile(user.uid))?.username).toBe('João Craque');
+    expect(await device().signIn(mail, 'segredo123')).toMatchObject({ username: 'João Craque', email: mail });
+  });
+
+  it('conta antiga com nome derivado do e-mail recupera o nome do cadastro sem perder dados', async () => {
+    const mail = email();
+    const uid = await legacyAccount(mail, 'Lenda Antiga');
+    const svc = device();
+    const user = await svc.signIn(mail, 'segredo123');
+    expect(user).toMatchObject({ uid, username: 'Lenda Antiga', email: mail });
+    const prof = await svc.getProfile(uid);
+    expect(prof).toMatchObject({ username: 'Lenda Antiga', email: mail });
+    expect(typeof prof!.createdAt).toBe('number');
+  });
+
+  it('conta antiga sem nome de cadastro continua entrando com o nome atual do perfil', async () => {
+    const mail = email();
+    const uid = await legacyAccount(mail, null);
+    const user = await device().signIn(mail, 'segredo123');
+    expect(user).toMatchObject({ uid, username: mail.split('@')[0], email: mail });
   });
 
   it('erros do Firebase viram mensagens amigáveis', async () => {
