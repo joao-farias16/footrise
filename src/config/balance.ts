@@ -210,6 +210,25 @@ export const OFFERS = {
   bigClubGap: 6,
 };
 
+/** Mercado de fim de carreira: clubes do país e o clube de origem em jogadores em declínio. */
+export const TWILIGHT = {
+  /** O declínio começa a contar a partir desta idade e atinge peso total ageSpan anos depois. */
+  fromAge: 30,
+  ageSpan: 5,
+  /** Pontos abaixo do pico de OVR para o sinal de queda ficar no máximo. */
+  peakDropFull: 6,
+  /** Queda de OVR numa única temporada para o sinal de queda ficar no máximo. */
+  seasonDropFull: 3,
+  /** Com declínio máximo, chance de cada vaga de proposta vir de um clube do país. */
+  nationalShare: 0.55,
+  /** Diferença máxima de força entre o clube nacional e o nível-alvo da proposta. */
+  nationalStrengthWindow: 10,
+  /** Com declínio máximo e nível compatível, chance de o clube de origem fazer proposta. */
+  originChance: 0.4,
+  /** Folga de força (para mais ou para menos) aceita pelo clube de origem por apego. */
+  originStrengthSlack: 8,
+};
+
 export const NATIONAL = {
   /** OVR necessário ≈ força da seleção - callupGap. */
   callupGap: 7,

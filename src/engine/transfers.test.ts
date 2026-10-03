@@ -13,7 +13,7 @@ import {
   startSeason,
   stayAtClub,
 } from './career';
-import { initialOffers, seasonOffers } from './offers';
+import { declineFactor, initialClubPool, initialOffers, originClubId, seasonOffers } from './offers';
 import { Rng } from './rng';
 import { hubCareer, profile, withAttributes } from './testUtils';
 
@@ -98,5 +98,86 @@ describe('clubes e transferências', () => {
     const old = withAttributes(hubCareer('ATA', 2), 55);
     old.age = 35;
     expect(seasonOffers(old, { rating: 6.2, apps: 10 } as SeasonRecord, new Rng(1))).toHaveLength(0);
+  });
+});
+
+describe('mercado de fim de carreira', () => {
+  /** Atacante de OVR `ovr` num clube estrangeiro, revelado pelo clube `origin`. */
+  function veteran(nationality: string, age: number, ovr: number, peak: number, origin: string): Career {
+    const c = withAttributes(hubCareer('ATA', 5), ovr, 'manchester-city');
+    c.profile.nationality = nationality;
+    c.age = age;
+    c.peakOvr = peak;
+    c.reputation = 80;
+    c.seasons = [{ clubId: origin } as SeasonRecord];
+    c.transfers = [
+      { season: '2030/31', fromClubId: origin, toClubId: 'arsenal', fee: 0, kind: 'transfer' },
+      { season: '2033/34', fromClubId: 'arsenal', toClubId: 'manchester-city', fee: 0, kind: 'transfer' },
+    ];
+    return c;
+  }
+  const season = (ovrStart: number, ovrEnd: number, rating = 6.9) => ({ rating, apps: 30, ovrStart, ovrEnd }) as SeasonRecord;
+
+  function market(c: Career, last: SeasonRecord, runs = 600) {
+    const home = new Set(initialClubPool(c.profile.nationality).map((x) => x.id));
+    let total = 0;
+    let national = 0;
+    let origin = 0;
+    for (let i = 1; i <= runs; i++) {
+      const offers = seasonOffers(c, last, new Rng(i));
+      total += offers.length;
+      national += offers.filter((o) => home.has(o.clubId)).length;
+      if (offers.some((o) => o.clubId === originClubId(c))) origin++;
+    }
+    return { national: national / runs, nationalShare: total ? national / total : 0, origin: origin / runs };
+  }
+
+  it('identifica o clube de origem mesmo depois de várias transferências', () => {
+    expect(originClubId(veteran('BRA', 35, 80, 92, 'santos'))).toBe('santos');
+    const fresh = hubCareer('ATA', 5);
+    expect(originClubId(fresh)).toBe(fresh.clubId);
+  });
+
+  it('o declínio cresce aos poucos e não depende só da idade', () => {
+    const c = veteran('BRA', 22, 78, 78, 'santos');
+    expect(declineFactor(c, season(74, 78))).toBe(0);
+    expect(declineFactor({ ...c, age: 28, peakOvr: 90 }, season(89, 90))).toBe(0);
+    // Veterano que mantém o nível ainda não está em declínio.
+    expect(declineFactor({ ...c, age: 35, peakOvr: 85 }, season(85, 85), 85)).toBe(0);
+    const starting = declineFactor({ ...c, age: 32, peakOvr: 90 }, season(89, 87), 87);
+    const veteranDecline = declineFactor({ ...c, age: 35, peakOvr: 92 }, season(84, 80), 80);
+    const older = declineFactor({ ...c, age: 38, peakOvr: 92 }, season(74, 70, 6.6), 70);
+    expect(starting).toBeGreaterThan(0);
+    expect(veteranDecline).toBeGreaterThan(starting);
+    expect(older).toBeGreaterThanOrEqual(veteranDecline);
+    expect(older).toBeLessThanOrEqual(1);
+  });
+
+  it('veterano em declínio recebe mais propostas do país, em várias nacionalidades', () => {
+    for (const [nat, origin] of [['BRA', 'santos'], ['ARG', initialClubPool('ARG')[2].id], ['JPN', initialClubPool('JPN')[1].id]]) {
+      const prime = market(veteran(nat, 28, 90, 90, origin), season(89, 90, 7.4));
+      const late = market(veteran(nat, 36, 76, 92, origin), season(80, 76));
+      expect(late.national, nat).toBeGreaterThan(prime.national + 0.2);
+      expect(late.nationalShare, nat).toBeGreaterThan(prime.nationalShare);
+    }
+  });
+
+  it('o clube de origem pode fazer proposta, mas o retorno nunca é garantido', () => {
+    const c = veteran('BRA', 36, 76, 92, 'santos');
+    const { origin } = market(c, season(80, 76));
+    expect(origin).toBeGreaterThan(0.15);
+    expect(origin).toBeLessThan(0.8);
+    expect(market(veteran('BRA', 27, 90, 90, 'santos'), season(88, 90, 7.4)).origin).toBeLessThan(0.05);
+  });
+
+  it('propostas nacionais seguem compatíveis com o nível atual do jogador', () => {
+    const c = veteran('BRA', 37, 66, 92, 'santos');
+    const home = new Set(initialClubPool('BRA').map((x) => x.id));
+    for (let i = 1; i <= 300; i++) {
+      for (const o of seasonOffers(c, season(71, 66), new Rng(i))) {
+        if (!home.has(o.clubId) || o.clubId === 'santos') continue;
+        expect(getClub(o.clubId)!.strength).toBeLessThanOrEqual(66 + 12);
+      }
+    }
   });
 });

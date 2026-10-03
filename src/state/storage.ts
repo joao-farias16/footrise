@@ -139,7 +139,11 @@ export function sanitizeCareer(raw: unknown): Career | null {
     promisedClubId: c.promisedClubId ?? null,
     forcedRetirementReason: c.forcedRetirementReason ?? null,
     retireAnnounced: !!c.retireAnnounced,
-    peakOvr: c.peakOvr ?? 0,
+    // Saves antigos sem pico: reconstrói a partir do OVR registrado em cada temporada.
+    peakOvr: Math.max(
+      c.peakOvr ?? 0,
+      ...(Array.isArray(c.seasons) ? c.seasons.map((s) => Math.max(s?.ovrStart ?? 0, s?.ovrEnd ?? 0)) : []),
+    ),
     peakValue: c.peakValue ?? 0,
     totalEarnings: c.totalEarnings ?? 0,
     legacy: c.legacy ?? null,

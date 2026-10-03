@@ -1,4 +1,4 @@
-import { CAREER, MARKET, OFFERS } from '../config/balance';
+import { CAREER, MARKET, OFFERS, TWILIGHT } from '../config/balance';
 import { CLUBS, clubsOfCountry, getClub, getLeague } from '../data/clubs';
 import { getCountry } from '../data/countries';
 import type { Career, Club, Offer, OfferKind, PositionId, SeasonRecord } from '../types';
@@ -103,6 +103,32 @@ export function initialOffers(career: Career, rng: Rng): Offer[] {
   );
 }
 
+/**
+ * Clube onde o jogador surgiu: o do primeiro contrato. A primeira transferência sai dele;
+ * sem transferências, é o clube da primeira temporada (ou o atual, antes de jogar).
+ */
+export function originClubId(c: Career): string | null {
+  return getClub(c.transfers[0]?.fromClubId)?.id ?? getClub(c.seasons[0]?.clubId)?.id ?? getClub(c.clubId)?.id ?? null;
+}
+
+/**
+ * Quanto o jogador já está no declínio da carreira (0–1), a partir do que a simulação registra:
+ * idade, distância para o pico de OVR, queda de OVR na última temporada e nota. A idade sozinha
+ * não basta — um veterano que ainda mantém o nível segue com o mercado normal.
+ */
+export function declineFactor(c: Career, last: Pick<SeasonRecord, 'rating' | 'apps'> & Partial<SeasonRecord>, ovr = computeOverall(c.attributes, c.position)): number {
+  const ageGate = clamp((c.age - TWILIGHT.fromAge) / TWILIGHT.ageSpan, 0, 1);
+  if (ageGate === 0) return 0;
+  const fromPeak = clamp((Math.max(c.peakOvr, ovr) - ovr) / TWILIGHT.peakDropFull, 0, 1);
+  const trend = Number.isFinite(last.ovrStart) && Number.isFinite(last.ovrEnd) ? (last.ovrStart as number) - (last.ovrEnd as number) : 0;
+  const falling = clamp(trend / TWILIGHT.seasonDropFull, 0, 1);
+  // Sem nenhuma perda de OVR ainda não é declínio (nota ruim sozinha é só uma temporada ruim).
+  if (fromPeak === 0 && falling === 0) return 0;
+  const lowForm = last.apps > 0 ? clamp((6.9 - last.rating) / 0.6, 0, 1) : 1;
+  const signal = clamp(fromPeak * 0.5 + falling * 0.35 + lowForm * 0.15, 0, 1);
+  return Math.round(ageGate * signal * 100) / 100;
+}
+
 /** Propostas de fim de temporada, baseadas em desempenho e reputação. */
 export function seasonOffers(career: Career, last: SeasonRecord, rng: Rng): Offer[] {
   const ovr = computeOverall(career.attributes, career.position);
@@ -118,13 +144,36 @@ export function seasonOffers(career: Career, last: SeasonRecord, rng: Rng): Offe
   if (career.age >= 33) count -= 1;
   count = clamp(count, 0, OFFERS.maxOffers);
 
+  // Fim de carreira: clubes do país do jogador (e o que o revelou) passam a se interessar mais.
+  // Só consome o RNG quando há declínio, então o mercado de jovens e de jogadores no auge não muda.
+  const decline = declineFactor(career, last, ovr);
+  const homeIds = decline > 0 ? new Set(initialClubPool(career.profile.nationality).map((c) => c.id)) : null;
+  const abroad = !!current && !homeIds?.has(current.id);
+
   const ambition = clamp(perf * 7 + career.reputation / 22 - 1, -6, 9);
   for (let i = 0; i < count; i++) {
     const target = ovr + rng.range(-7, 2) + ambition * rng.range(0.4, 1);
-    const club = pickClubNear(target, rng, exclude);
+    // Parte das vagas pode vir de um clube do país, desde que o nível seja compatível com o alvo.
+    const national =
+      homeIds && rng.chance(decline * TWILIGHT.nationalShare)
+        ? pickClubNear(target, rng, exclude, (c) => homeIds.has(c.id) && Math.abs(c.strength - target) <= TWILIGHT.nationalStrengthWindow)
+        : undefined;
+    const club = national ?? pickClubNear(target, rng, exclude);
     if (!club) break;
     exclude.add(club.id);
-    offers.push(buildOffer(club, 'transfer', ovr, career.age, career.reputation, rng, describeOffer(club, ovr, current, career.position), career.position));
+    const pitch = national && abroad ? 'Um clube do seu país quer você de volta em casa.' : describeOffer(club, ovr, current, career.position);
+    offers.push(buildOffer(club, 'transfer', ovr, career.age, career.reputation, rng, pitch, career.position));
+  }
+
+  // O clube onde o jogador surgiu pode tentar trazê-lo de volta (nunca é garantido).
+  const origin = decline > 0 ? getClub(originClubId(career)) : undefined;
+  if (origin && !exclude.has(origin.id)) {
+    const gap = Math.max(0, Math.abs(origin.strength - ovr) - TWILIGHT.originStrengthSlack);
+    const chance = decline * TWILIGHT.originChance * Math.exp(-gap / TWILIGHT.originStrengthSlack);
+    if (rng.chance(chance)) {
+      exclude.add(origin.id);
+      offers.unshift(buildOffer(origin, 'transfer', ovr, career.age, career.reputation, rng, 'O clube que te revelou quer você de volta para fechar o ciclo.', career.position));
+    }
   }
 
   // Promessa de interesse feita durante um evento.

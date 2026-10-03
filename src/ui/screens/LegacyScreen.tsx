@@ -57,7 +57,7 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
         <StatTile label="Nota média" value={<span className={ratingClass(s.totals.avgRating)}>{s.totals.avgRating > 0 ? s.totals.avgRating.toFixed(2) : '—'}</span>} sub="ponderada pelos jogos" />
         <StatTile label="Títulos" value={s.trophies.length} sub={big.length > 0 ? `${big.reduce((t, g) => t + g.years.length, 0)} grandes` : undefined} />
         <StatTile label="Prêmios" value={s.awards.length} sub={worldAwards > 0 ? `${worldAwards}× Coroa de Ouro` : undefined} />
-        <StatTile label="OVR máximo" value={<span className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</span>} sub={s.evolution.peakOvrSeason ?? undefined} />
+        <StatTile label="Pico de OVR" value={<span className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</span>} sub={s.evolution.peakOvrSeason ?? undefined} />
         <StatTile label="Maior valor" value={formatMoney(s.evolution.peakValue)} />
         <StatTile label="Salários recebidos" value={formatMoney(s.earnings.total)} sub={`pico de ${formatMoney(s.earnings.peakWeeklyWage)}/sem`} />
         <StatTile label="Minutos" value={s.totals.minutes.toLocaleString('pt-BR')} />
@@ -305,7 +305,12 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
 
       <div className="grid-2">
         <div className="panel panel-tight stack" style={{ gap: 8 }}>
-          <h3>Atributos finais</h3>
+          <div className="panel-title">
+            <h3>Atributos finais</h3>
+            <span className="faint">
+              OVR final <strong className={ovrClass(s.evolution.finalOvr)}>{s.evolution.finalOvr}</strong>
+            </span>
+          </div>
           {Object.entries(s.evolution.finalAttributes).map(([k, v]) => (
             <div className="attr-row" key={k}>
               <span className="attr-key">{ATTR_META[k as keyof typeof ATTR_META].short}</span>
@@ -339,12 +344,14 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
             nationality={s.player.nationality}
             position={s.player.position}
             number={s.player.preferredNumber}
-            ovr={s.evolution.peakOvr}
-            ovrLabel="Pico"
+            ovr={s.evolution.finalOvr}
+            ovrLabel="Final"
             attributes={s.evolution.finalAttributes}
             style={s.evolution.style}
           />
-          <p className="faint">Atributos finais · OVR final {s.evolution.finalOvr}</p>
+          <p className="faint">
+            Atributos finais · OVR final {s.evolution.finalOvr} · pico {s.evolution.peakOvr}
+          </p>
         </div>
       </div>
     </>
@@ -364,8 +371,19 @@ function LegacyHero({ s, retiring }: { s: CareerSummary; retiring: boolean }) {
           {p.careerYears === 1 ? '' : 's'} ({range(p.firstSeason, p.lastSeason)})
         </span>
       </div>
+      <div className="legacy-peak" aria-label={`Pico de OVR ${s.evolution.peakOvr}, OVR final ${s.evolution.finalOvr}`}>
+        <div className="eyebrow">Pico de OVR</div>
+        <div className="legacy-peak-value">
+          <span className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</span>
+          <span className="faint"> / 100</span>
+        </div>
+        <div className="faint">
+          {s.evolution.peakOvrSeason ? `${s.evolution.peakOvrSeason} · ` : ''}OVR final {s.evolution.finalOvr}
+        </div>
+      </div>
       <div className="legacy-ring" style={{ ['--p' as string]: s.legacy.score, ['--ring' as string]: ringColor(s.legacy.score) }}>
         <div style={{ textAlign: 'center' }}>
+          <div className="eyebrow">Legado</div>
           <div className="legacy-score">{s.legacy.score}</div>
           <div className="faint">/ 100</div>
         </div>

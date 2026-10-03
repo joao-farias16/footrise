@@ -100,6 +100,16 @@ function seasonRows(c: Career): SeasonSummary[] {
   }));
 }
 
+/**
+ * Pico de OVR da carreira: o maior valor já registrado (campo da carreira, início/fim de cada
+ * temporada e o OVR atual). Reconstrói o pico de saves antigos que não o tinham preenchido.
+ */
+export function careerPeakOvr(c: Pick<Career, 'peakOvr' | 'seasons' | 'attributes' | 'position'>): number {
+  const seasonsPeak = c.seasons.reduce((m, s) => Math.max(m, s.ovrStart ?? 0, s.ovrEnd ?? 0), 0);
+  const current = Object.keys(c.attributes ?? {}).length > 0 ? computeOverall(c.attributes, c.position) : 0;
+  return Math.max(c.peakOvr ?? 0, seasonsPeak, current);
+}
+
 /** Gera o resumo completo. A carreira deve estar encerrada (fase 'retired'). */
 export function buildCareerSummary(c: Career, savedAt = Date.now()): CareerSummary {
   const seasons = c.seasons;
@@ -112,7 +122,8 @@ export function buildCareerSummary(c: Career, savedAt = Date.now()): CareerSumma
   }
   const sum = (f: (s: (typeof seasons)[number]) => number) => seasons.reduce((t, s) => t + f(s), 0);
   const keys = attrKeysFor(c.position);
-  const peakSeason = seasons.find((s) => s.ovrEnd === c.peakOvr || s.ovrStart === c.peakOvr);
+  const peakOvr = careerPeakOvr(c);
+  const peakSeason = seasons.find((s) => s.ovrEnd === peakOvr || s.ovrStart === peakOvr);
   const n = nationalSummary(c);
   const retirementAge = c.retirementAge ?? c.age;
 
@@ -138,7 +149,7 @@ export function buildCareerSummary(c: Career, savedAt = Date.now()): CareerSumma
       mode: c.mode,
     },
     evolution: {
-      peakOvr: c.peakOvr,
+      peakOvr,
       peakOvrSeason: peakSeason?.season ?? null,
       finalOvr: computeOverall(c.attributes, c.position),
       potentialOvr: computeOverall(c.potential, c.position),
@@ -196,6 +207,33 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+/**
+ * Garante pico e OVR final coerentes em resumos salvos: o pico nunca fica abaixo de nenhum OVR
+ * registrado nas temporadas, e o OVR final cai para o da última temporada se estiver ausente.
+ */
+function sanitizeEvolution(raw: unknown, seasons: SeasonSummary[]): CareerSummary['evolution'] {
+  const e = (isObject(raw) ? raw : {}) as Partial<CareerSummary['evolution']>;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const rows = seasons.filter(isObject);
+  const lastOvr = num(rows[rows.length - 1]?.ovr);
+  const finalOvr = typeof e.finalOvr === 'number' ? e.finalOvr : lastOvr;
+  const seasonsPeak = rows.reduce((m, x) => Math.max(m, num(x.ovrStart), num(x.ovr)), 0);
+  const peakOvr = Math.max(num(e.peakOvr), seasonsPeak, finalOvr);
+  const peakOvrSeason =
+    peakOvr === num(e.peakOvr) && e.peakOvrSeason ? e.peakOvrSeason : (rows.find((x) => x.ovr === peakOvr || x.ovrStart === peakOvr)?.season ?? e.peakOvrSeason ?? null);
+  return {
+    ...e,
+    peakOvr,
+    peakOvrSeason,
+    finalOvr,
+    potentialOvr: num(e.potentialOvr),
+    finalAttributes: isObject(e.finalAttributes) ? e.finalAttributes : {},
+    topAttributes: Array.isArray(e.topAttributes) ? e.topAttributes : [],
+    peakValue: num(e.peakValue),
+    style: typeof e.style === 'string' ? e.style : '',
+  };
+}
+
 /** Valida um resumo vindo do storage ou da nuvem. */
 export function sanitizeSummary(raw: unknown): CareerSummary | null {
   if (!isObject(raw)) return null;
@@ -205,6 +243,7 @@ export function sanitizeSummary(raw: unknown): CareerSummary | null {
   if (typeof s.player.name !== 'string') return null;
   return {
     ...(s as CareerSummary),
+    evolution: sanitizeEvolution(s.evolution, s.seasons),
     savedAt: typeof s.savedAt === 'number' ? s.savedAt : 0,
     cloudUid: s.cloudUid ?? null,
     awards: Array.isArray(s.awards) ? s.awards : [],

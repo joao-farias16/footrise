@@ -88,7 +88,10 @@ export function HistoryScreen() {
                   </div>
                   <div className="faint history-meta">
                     <span>
-                      OVR máximo <strong className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</strong>
+                      Pico de OVR <strong className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</strong>
+                    </span>
+                    <span>
+                      OVR final <strong className={ovrClass(s.evolution.finalOvr)}>{s.evolution.finalOvr}</strong>
                     </span>
                     <span>Valor máximo {formatMoney(s.evolution.peakValue)}</span>
                   </div>
