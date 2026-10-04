@@ -13,7 +13,9 @@
 - [Funcionalidades](#funcionalidades)
 - [OVR e evolução](#ovr-e-evolução)
 - [Simulação de temporadas](#simulação-de-temporadas)
+- [Eventos de carreira](#eventos-de-carreira)
 - [Transferências e mercado](#transferências-e-mercado)
+- [Prêmios e Bola de Ouro](#prêmios-e-bola-de-ouro)
 - [Final da carreira e legado](#final-da-carreira-e-legado)
 - [Contas, autenticação e salvamento](#contas-autenticação-e-salvamento)
 - [Tecnologias](#tecnologias)
@@ -21,10 +23,10 @@
 - [Instalação e execução](#instalação-e-execução)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Firebase](#firebase)
+- [Deploy](#deploy)
 - [Testes](#testes)
 - [Desenvolvimento](#desenvolvimento)
 - [Status do projeto](#status-do-projeto)
-- [Próximos passos](#próximos-passos)
 - [Aviso](#aviso)
 
 ---
@@ -57,19 +59,20 @@ Cada temporada é simulada partida a partida, e o resultado é uma história pr�
 
 ### Carreira
 - **40 ligas** em cinco continentes e **366 clubes** com força, reputação e nível salarial próprios.
-- **Propostas de clubes** no início da carreira e ao fim de cada temporada, com titularidade esperada, exposição, chance de títulos e salário.
-- **Transferências** com valor de mercado, salário semanal e **empréstimos** para jovens sem espaço no clube.
+- **Propostas de clubes** no início da carreira e ao fim de cada temporada, com titularidade esperada, exposição, chance de títulos, salário e valor da transferência.
+- **Transferências** com valor de mercado, **capacidade financeira do clube comprador**, salário semanal e **empréstimos** para jovens sem espaço no clube.
 - **Números de camisa** por clube e seleção, com histórico.
-- **28 eventos de carreira** (treinador, mercado, lesão, torcida, imprensa, seleção, vestiário etc.) com escolhas que afetam forma, titularidade, moral, risco de lesão e reputação.
+- **Eventos de carreira** na pré-temporada, sorteados de um catálogo com **57 situações diferentes** (treinador, elenco, clube, mercado, seleção, físico, marcos da carreira, fim de carreira etc.), com escolhas que afetam forma, titularidade, moral, risco de lesão, reputação e mais. Veja [Eventos de carreira](#eventos-de-carreira).
 - **Seleção nacional**: convocações, Datas FIFA, eliminatórias, liga das nações, Copa do Mundo e torneios continentais.
 - **Competições de clubes**: liga, copa nacional, torneio continental e Mundial de Clubes.
-- **Títulos e prêmios individuais**: artilheiro da liga, melhor goleiro, craque do clube, melhor jogador da liga, Prêmio Revelação Mundial, Coroa de Ouro FootRise e prêmios de torneios de seleções.
+- **Títulos e prêmios individuais**: artilheiro da liga, melhor goleiro, craque do clube, melhor jogador da liga, Prêmio Revelação Mundial, **Bola de Ouro** e prêmios de torneios de seleções.
 - **Reputação**, moral e confiança do treinador ao longo da carreira.
 - **Aposentadoria** opcional a partir dos 34 anos e obrigatória aos 40.
 - **Legado**: nota de 0 a 100 com detalhamento e classificação — PROMESSA, PROFISSIONAL, DESTAQUE, CRAQUE, LENDÁRIO ou ÍCONE.
 
 ### Histórico e interface
-- **Minhas carreiras**: histórico de carreiras encerradas com resumo completo (temporada a temporada, clubes, troféus, prêmios, seleção, transferências, Pico de OVR, OVR final e atributos finais), ordenação por data ou legado e exclusão.
+- **Minhas carreiras**: lista de carreiras encerradas que mostra o **OVR máximo (Pico de OVR)** e a classificação do legado de cada uma, com ordenação por data ou por legado e exclusão.
+- **Resumo da carreira**: temporada a temporada, clubes, troféus, prêmios (com a contagem de Bolas de Ouro), seleção, transferências, números de camisa, ganhos, Pico de OVR, OVR final, atributos finais e o detalhamento do legado.
 - Interface responsiva (celular, tablet e desktop) com opção de reduzir animações.
 
 ## OVR e evolução
@@ -81,10 +84,12 @@ O jogo trabalha com três leituras diferentes do OVR:
 | Conceito | O que representa |
 | --- | --- |
 | **OVR ao longo da carreira** | O OVR atual do jogador, que muda ao fim de cada temporada conforme os atributos evoluem ou caem. Cada temporada registra o OVR inicial e o final. |
-| **Pico de OVR** | O **maior overall atingido em toda a carreira**, junto com a temporada em que ele foi alcançado. É atualizado a cada temporada e nunca diminui. |
+| **Pico de OVR (OVR máximo)** | O **maior OVR atingido pelo jogador durante toda a carreira**, junto com a temporada em que ele foi alcançado. É atualizado a cada temporada e nunca diminui. |
 | **OVR final** | O overall no momento da aposentadoria, calculado a partir dos **atributos finais** — o estado real do jogador ao pendurar as chuteiras. |
 
-Por isso um jogador pode ter Pico de OVR 96 e encerrar a carreira com OVR final 66: o pico mostra o auge, os atributos finais mostram o jogador veterano. O resumo da carreira exibe os dois valores separadamente, e resumos salvos por versões anteriores têm o pico reconstruído a partir das temporadas registradas.
+Por isso um jogador pode ter Pico de OVR 96 e encerrar a carreira com OVR final 66: o pico mostra o auge, os atributos finais mostram o jogador veterano. O OVR máximo aparece em destaque na lista de **Minhas carreiras** e no resumo final, sempre separado do OVR final. Resumos salvos por versões anteriores têm o pico reconstruído a partir das temporadas registradas.
+
+**OVR não é legado.** O [legado](#final-da-carreira-e-legado) é uma nota de 0 a 100 sobre a carreira inteira (títulos, prêmios, produção, longevidade, seleção etc.). O Pico de OVR é apenas um dos componentes dessa nota — os dois números não são a mesma coisa e são exibidos separadamente.
 
 **Evolução:** ao fim de cada temporada, cada atributo se aproxima do potencial definido no draft. A velocidade dessa aproximação depende de:
 
@@ -116,6 +121,15 @@ O desempenho é influenciado por:
 
 Todos os parâmetros de balanceamento ficam em `src/config/balance.ts`, e os perfis por posição em `src/config/positions.ts`. O gerador aleatório tem seed salva na carreira, então os resultados são reproduzíveis.
 
+## Eventos de carreira
+
+Antes de cada temporada, a carreira passa por alguns **eventos** com decisões. A **quantidade** por temporada segue a lógica do jogo: normalmente de 2 a 4, podendo variar de 1 a 6, com temporadas um pouco mais movimentadas para jogadores famosos, na estreia e em anos de Copa. A grande variedade está no **catálogo**: são 57 situações possíveis, e só algumas aparecem em cada temporada.
+
+- **Categorias:** treinador (mudança de posição, novo treinador, novo esquema tático, disputa por titularidade), elenco e clube (concorrente na posição, chegada de um astro, venda de uma peça-chave, clube em crise, defesa de título, noites continentais), mercado (sondagens, proposta de um rival da mesma liga, chamado do país natal, especulação), seleção (pré-convocação, torneio de base, ano de Copa, perda de espaço, renovação do grupo), físico e lesões, imprensa, torcida, vestiário, marcos (gols e jogos na carreira, homenagens) e fim de carreira.
+- **Contexto:** cada evento só aparece quando faz sentido — pela idade, posição, desempenho e números da temporada anterior, títulos recentes, clube, seleção, empréstimo ou transferência recente. Um jovem não recebe perguntas sobre aposentadoria, e quem nunca jogou pela seleção não recebe evento de perda de espaço nela.
+- **Escolhas com consequências:** as decisões envolvem trocas (mais minutos x risco de lesão, ficar x sair, protagonismo x conflito) e têm efeitos moderados em forma, titularidade, moral, confiança do treinador, reputação, risco de lesão, convocação, salário, potencial ou atributos. Alguns eventos podem gerar uma promessa de proposta de outro clube para o fim da temporada.
+- **Variedade e coerência:** o sorteio dá menos peso a eventos que apareceram nas temporadas recentes e evita acumular muitos da mesma categoria. Situações contraditórias (por exemplo, lesão na pré-temporada e pré-temporada arrasadora) não aparecem juntas.
+
 ## Transferências e mercado
 
 ### Primeiro contrato
@@ -124,8 +138,16 @@ A carreira começa com **três propostas de clubes do país do jogador**, com pe
 ### Propostas de fim de temporada
 - Os clubes interessados são escolhidos pela **força próxima ao nível do jogador**, ajustada pelo **desempenho na temporada e pela reputação** — boas temporadas atraem clubes maiores e mais propostas.
 - Cada proposta mostra **valor de transferência**, **salário semanal**, **titularidade esperada**, exposição e chance de títulos. Clubes bem mais fortes que o atual aparecem destacados como "gigantes".
-- O **valor de mercado** depende do OVR, da idade e da reputação; o salário depende também do nível salarial da liga.
+- O **valor de mercado** depende do OVR, da idade e da reputação do jogador; o salário depende também do nível salarial da liga.
 - Eventos de carreira podem gerar uma **promessa de interesse** de um clube, que vira proposta ao fim da temporada.
+
+### Economia das propostas
+O valor oferecido parte do valor de mercado do jogador e varia de proposta para proposta — pode ficar abaixo, perto ou acima dele. O que muda é **quem paga**: cada clube tem uma **capacidade financeira** própria, derivada da sua reputação e do poder econômico da liga. Ela é diferente da força do elenco: um clube pode ser forte em campo e ter orçamento menor, ou o contrário.
+
+- Clubes mais ricos tendem a oferecer mais e conseguem disputar os jogadores mais caros.
+- Quando o valor do jogador passa do que o clube costuma investir, a proposta é **amortecida**, sem corte rígido: clubes menores ainda podem fazer ofertas altas, mas raramente competem de igual para igual com os gigantes por um craque.
+- Para jogadores de valor comum, a diferença entre compradores é pequena, e clubes menores continuam fazendo boas contratações.
+- A aleatoriedade continua: o mesmo jogador recebe valores diferentes de clubes diferentes, e do mesmo clube em momentos diferentes.
 - Jogadores de até 21 anos com pouco espaço no clube podem receber **propostas de empréstimo** de uma temporada.
 - A partir dos 33 anos o número de propostas diminui, e jogadores com OVR abaixo de 62 nessa idade deixam de receber propostas (permanecem no clube).
 
@@ -138,6 +160,19 @@ Em declínio:
 
 ### Histórico de transferências
 Todas as transferências e empréstimos ficam registrados com temporada, clube de origem, clube de destino e valor, e aparecem no resumo da carreira.
+
+## Prêmios e Bola de Ouro
+
+Ao fim de cada temporada o jogo avalia os prêmios individuais: artilheiro da liga, melhor goleiro, craque do clube, melhor jogador da liga, Prêmio Revelação Mundial (até 21 anos) e prêmios de torneios de seleções.
+
+A **Bola de Ouro** é o prêmio anual de **melhor jogador do mundo**:
+
+- é decidida pelo **desempenho da temporada** — nota média, gols e assistências (ou jogos sem sofrer gols, para defensores e goleiros), minutos, títulos conquistados e sua importância, força da liga e atuações pela seleção. O OVR entra como contexto, mas uma temporada mediana de um jogador de OVR alto perde para uma temporada extraordinária de um jogador um pouco menos técnico;
+- exige regularidade: é preciso ter sido titular em uma quantidade mínima de jogos;
+- pode ser conquistada **várias vezes**, inclusive em temporadas seguidas, sem limite;
+- fica registrada na temporada (prêmios e manchetes), no histórico de prêmios da carreira e no resumo final, que mostra quantas Bolas de Ouro o jogador ganhou. Ela também tem o maior peso entre os prêmios individuais na reputação e no legado.
+
+O FootRise não simula os demais jogadores do mundo individualmente: a disputa acontece contra um rival de referência com variação aleatória a cada ano.
 
 ## Final da carreira e legado
 
@@ -199,7 +234,7 @@ npm run preview      # serve o build de produção localmente
 
 Sem variáveis de ambiente o jogo roda normalmente, só com salvamento local. Para habilitar contas e nuvem, veja [Variáveis de ambiente](#variáveis-de-ambiente) e [Firebase](#firebase).
 
-O build usa caminhos relativos e pode ser hospedado em qualquer serviço de arquivos estáticos.
+O build usa caminhos relativos e pode ser hospedado em qualquer serviço de arquivos estáticos (veja [Deploy](#deploy)).
 
 ## Variáveis de ambiente
 
@@ -233,6 +268,13 @@ As contas e o salvamento em nuvem dependem de um projeto Firebase próprio. As c
 
 **Desenvolvimento sem projeto real:** `npm run emulators` sobe Auth e Firestore locais com um projeto de demonstração. Para apontar o app para eles, use as variáveis de exemplo comentadas no `.env.example` (incluindo `VITE_FIREBASE_USE_EMULATOR=true`).
 
+## Deploy
+
+O FootRise é um app estático: `npm run build` gera a pasta `dist/` com caminhos relativos, que pode ser publicada em qualquer serviço de hospedagem de arquivos estáticos. O repositório não traz configuração específica de nenhum provedor de hospedagem.
+
+- As variáveis `VITE_FIREBASE_*` são lidas **no momento do build**. Configure-as no ambiente onde o build é executado (por exemplo, nas variáveis de ambiente do serviço de hospedagem) para que a versão publicada tenha contas e nuvem. Sem elas, a versão publicada funciona só com salvamento local.
+- As regras do Firestore são publicadas separadamente, com `npx firebase-tools deploy --only firestore:rules`.
+
 ## Testes
 
 ```bash
@@ -242,7 +284,7 @@ npm run test:cloud   # regras do Firestore + serviço de nuvem no Firebase Emula
 npm run test:watch   # Vitest em modo watch
 ```
 
-Os testes cobrem overall, draft e reroll, simulação e estatísticas por nível e posição, evolução, Pico de OVR e OVR final, transferências (incluindo o mercado de fim de carreira), seleção, aposentadoria, legado, persistência local, sincronização e, no emulador, cadastro, login, perfil, regras de segurança e salvamento na nuvem.
+Os testes cobrem overall, draft e reroll, simulação e estatísticas por nível e posição, evolução, Pico de OVR e OVR final, eventos (quantidade por temporada, condições, conflitos e consequências), transferências e economia das propostas (incluindo o mercado de fim de carreira), Bola de Ouro e demais prêmios, seleção, aposentadoria, legado, persistência local (incluindo saves de versões anteriores), sincronização e, no emulador, cadastro, login, perfil, regras de segurança e salvamento na nuvem.
 
 ## Desenvolvimento
 
@@ -256,14 +298,8 @@ Ajustes de jogabilidade normalmente ficam restritos a `src/config/balance.ts` e 
 
 ## Status do projeto
 
-O FootRise está em desenvolvimento ativo e já é jogável de ponta a ponta: criação, draft, carreira completa, mercado de transferências, seleção, aposentadoria, legado, histórico e salvamento local ou em nuvem estão implementados e cobertos por testes. Não há ranking global nem compartilhamento de carreiras entre usuários.
-
-## Próximos passos
-
-> Melhoria planejada — **ainda não implementada**.
-
-- **Economia de transferências:** refinar os valores pagos nas transferências para que fiquem mais coerentes com a força e a capacidade financeira de cada clube. Hoje o valor da transferência é calculado a partir do valor de mercado do jogador (OVR, idade e reputação), sem considerar o poder financeiro do clube comprador.
+O FootRise está em desenvolvimento ativo e já é jogável de ponta a ponta: criação, draft com reroll, carreira completa, eventos de carreira, mercado de transferências com capacidade financeira dos clubes, seleção, prêmios (incluindo a Bola de Ouro), aposentadoria, legado, histórico e salvamento local ou em nuvem estão implementados e cobertos por testes. Não há ranking global nem compartilhamento de carreiras entre usuários.
 
 ## Aviso
 
-Nomes de jogadores reais aparecem apenas como referência esportiva no draft. Os atributos das lendas são estimativas próprias do jogo, não dados oficiais. Clubes reais aparecem apenas pelo nome, com escudos estilizados gerados pelo jogo (sem escudos ou marcas oficiais), e as competições continentais e os prêmios individuais têm nomes próprios do FootRise.
+Nomes de jogadores reais aparecem apenas como referência esportiva no draft. Os atributos das lendas são estimativas próprias do jogo, não dados oficiais. Clubes reais aparecem apenas pelo nome, com escudos estilizados gerados pelo jogo (sem escudos ou marcas oficiais), e as competições continentais têm nomes próprios do FootRise. A Bola de Ouro do jogo é uma premiação fictícia do universo do FootRise, sem vínculo com premiações oficiais.

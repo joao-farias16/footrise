@@ -1,6 +1,7 @@
 import { CAREER } from '../config/balance';
 import { POSITIONS } from '../config/positions';
 import { CLUB_BY_ID, getClub, LEGACY_CLUB_RENAMES, resolveClubId } from '../data/clubs';
+import { renameLegacyAward } from '../engine/awards';
 import { repairDraftCareer } from '../engine/career';
 import { defaultModifiers } from '../engine/events';
 import { buildCareerSummary, sanitizeSummary } from '../engine/careerSummary';
@@ -81,6 +82,20 @@ function migrateClubs(c: Partial<Career>): void {
   if (Array.isArray(c.trophies)) for (const t of c.trophies) if (isObject(t)) t.team = name(t.team) as string;
 }
 
+/** Saves anteriores à Bola de Ouro: o mesmo prêmio aparecia como "Coroa de Ouro FootRise" (muta o objeto cru). */
+function migrateAwards(c: Partial<Career>): void {
+  const rename = (awards: unknown) => {
+    if (Array.isArray(awards)) for (const a of awards) if (isObject(a) && typeof a.name === 'string') a.name = renameLegacyAward(a.name);
+  };
+  rename(c.awards);
+  if (!Array.isArray(c.seasons)) return;
+  for (const s of c.seasons) {
+    if (!isObject(s)) continue;
+    rename(s.awards);
+    if (Array.isArray(s.headlines)) s.headlines = s.headlines.map((h) => (typeof h === 'string' ? renameLegacyAward(h) : h));
+  }
+}
+
 const PHASES: CareerPhase[] = ['draft', 'card', 'club-choice', 'hub', 'event', 'season-review', 'offers', 'retired'];
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -95,6 +110,7 @@ export function sanitizeCareer(raw: unknown): Career | null {
   if (!isObject(raw)) return null;
   const c = raw as Partial<Career>;
   migrateClubs(c);
+  migrateAwards(c);
   if (typeof c.id !== 'string' || !isObject(c.profile) || !isObject(c.draft)) return null;
   if (!c.phase || !PHASES.includes(c.phase)) return null;
   if (!c.position || !POSITIONS[c.position]) return null;

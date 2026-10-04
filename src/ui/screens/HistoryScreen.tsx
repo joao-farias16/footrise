@@ -70,8 +70,8 @@ export function HistoryScreen() {
             const isKeeper = POSITIONS[s.player.position].group === 'gk';
             return (
               <article className="history-card" key={s.careerId}>
-                <div className="history-score" aria-label={`Legado ${s.legacy.score}`}>
-                  <b>{s.legacy.score}</b>
+                <div className="history-score" aria-label={`Pico de OVR ${s.evolution.peakOvr}`}>
+                  <b>{s.evolution.peakOvr}</b>
                   <small>{s.legacy.tier}</small>
                 </div>
                 <div style={{ minWidth: 0 }}>

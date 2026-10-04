@@ -203,6 +203,30 @@ export const MARKET = {
   feeMultiplier: 1.1,
 };
 
+/**
+ * Poder financeiro do comprador nas transferências. É separado da força do elenco:
+ * vem da reputação do clube (marca, receitas) e do nível salarial da liga (TV, patrocínios).
+ */
+export const FINANCE = {
+  /** Reputação que vale 0 e 1 no índice financeiro. */
+  repFloor: 30,
+  repTop: 98,
+  /** Nível salarial da liga que já vale o máximo no índice. */
+  wageTop: 1.6,
+  /** Peso da reputação no índice (o resto vem da liga). */
+  repWeight: 0.6,
+  /** Faixa aleatória da proposta sobre o valor de mercado: [min, max] + finanças × [minPerFinance, maxPerFinance]. */
+  noiseMin: 0.8,
+  noiseMax: 1.1,
+  noiseMinPerFinance: 0.1,
+  noiseMaxPerFinance: 0.15,
+  /** Orçamento de referência = budgetBase × e^(índice × budgetScale). Acima dele a proposta é amortecida. */
+  budgetBase: 26_000_000,
+  budgetScale: 2.85,
+  /** Fração do que passa do orçamento que ainda entra na proposta (esforço extra, nunca um corte seco). */
+  overBudgetShare: 0.3,
+};
+
 export const OFFERS = {
   maxOffers: 4,
   loanMaxAge: 21,

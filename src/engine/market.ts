@@ -1,13 +1,40 @@
-import { MARKET, PLAYING_TIME } from '../config/balance';
+import { FINANCE, MARKET, PLAYING_TIME } from '../config/balance';
 import { getLeague } from '../data/clubs';
 import type { Club, PositionId } from '../types';
-import { clamp, sigmoid } from './rng';
+import { clamp, sigmoid, type Rng } from './rng';
 
 export function marketValue(ovr: number, age: number, reputation: number): number {
   const base = MARKET.baseValue * Math.exp((ovr - MARKET.ovrPivot) / MARKET.ovrScale);
   const ageF = MARKET.ageFactor.find((a) => age <= a.maxAge)?.f ?? 0.15;
   const repF = 0.85 + reputation / 400;
   return roundMoney(base * ageF * repF);
+}
+
+/**
+ * Poder financeiro do clube (0–1): reputação (marca, receitas) e nível salarial da liga.
+ * Não é a força do elenco — um clube pode ser forte com orçamento menor, ou o contrário.
+ */
+export function clubFinance(club: Club): number {
+  const rep = clamp((club.reputation - FINANCE.repFloor) / (FINANCE.repTop - FINANCE.repFloor), 0, 1);
+  const league = clamp(getLeague(club.leagueId).wageLevel / FINANCE.wageTop, 0, 1);
+  return rep * FINANCE.repWeight + league * (1 - FINANCE.repWeight);
+}
+
+/** Quanto o clube costuma conseguir investir numa transferência (referência suave, não um teto rígido). */
+export function transferBudget(club: Club): number {
+  return FINANCE.budgetBase * Math.exp(clubFinance(club) * FINANCE.budgetScale);
+}
+
+/**
+ * Valor da proposta: valor de mercado com variação aleatória. Clubes mais ricos tendem a pagar
+ * um pouco mais, e o que passa do orçamento do clube entra só em parte na proposta.
+ */
+export function transferFee(value: number, club: Club, rng: Rng): number {
+  const f = clubFinance(club);
+  const noise = rng.range(FINANCE.noiseMin + f * FINANCE.noiseMinPerFinance, FINANCE.noiseMax + f * FINANCE.noiseMaxPerFinance);
+  const raw = value * MARKET.feeMultiplier * noise;
+  const budget = transferBudget(club);
+  return raw <= budget ? raw : budget + (raw - budget) * FINANCE.overBudgetShare;
 }
 
 export function weeklyWage(ovr: number, reputation: number, wageLevel: number): number {

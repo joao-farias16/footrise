@@ -58,6 +58,8 @@ export interface EventDef {
    * do sorteio normal, quando elegível.
    */
   priority?: (ctx: EventContext) => number;
+  /** Eventos que compartilham uma etiqueta não aparecem na mesma temporada (evita situações contraditórias). */
+  conflicts?: string[];
   params?: (ctx: EventContext, rng: Rng) => Params;
   title: (params: Params) => string;
   text: (ctx: EventContext, params: Params) => string;
@@ -75,6 +77,28 @@ function seasonsAtClub(c: EventContext): number {
   for (let i = c.career.seasons.length - 1; i >= 0 && c.career.seasons[i].clubId === c.club.id; i--) n++;
   return n;
 }
+
+function lastSeason(c: EventContext) {
+  return c.career.seasons[c.career.seasons.length - 1];
+}
+
+/** Chegou ao clube nesta janela (transferência ou empréstimo), não a volta de um empréstimo. */
+function justArrived(c: EventContext): boolean {
+  const t = c.career.transfers[c.career.transfers.length - 1];
+  return c.career.seasons.length > 0 && seasonsAtClub(c) === 0 && t?.toClubId === c.club.id;
+}
+
+function careerTotal(c: EventContext, key: 'goals' | 'apps'): number {
+  return c.career.seasons.reduce((t, s) => t + s[key], 0);
+}
+
+/** Próximo marco redondo ainda não atingido. */
+function nextMilestone(total: number, marks: number[]): number | undefined {
+  return marks.find((m) => m > total);
+}
+
+const GOAL_MARKS = [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800];
+const APP_MARKS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 
 /** Sorteia um clube perto da força alvo (exclui o atual). */
 function clubNear(ctx: EventContext, target: number, rng: Rng, filter: (cl: Club) => boolean = () => true): Club {
@@ -115,6 +139,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'big_club_watching',
+    conflicts: ['transfer_talk'],
     category: 'Mercado',
     icon: '🔭',
     weight: (c) => (c.lastRating !== null && c.lastRating >= 6.9 && c.club.strength < 90 ? 1.4 : 0),
@@ -149,6 +174,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'preseason_injury',
+    conflicts: ['fitness'],
     category: 'Lesão',
     icon: '🩹',
     weight: (c) => 0.6 + Math.max(0, c.career.age - 28) * 0.15,
@@ -398,6 +424,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'new_coach',
+    conflicts: ['coach_change'],
     category: 'Treinador',
     icon: '🔄',
     weight: () => 0.6,
@@ -481,6 +508,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'rival_signing',
+    conflicts: ['role'],
     category: 'Elenco',
     icon: '🆕',
     weight: (c) => (c.startShare >= 0.35 && c.club.strength >= 68 ? 0.9 : 0),
@@ -541,6 +569,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'hot_streak',
+    conflicts: ['fitness', 'mood'],
     category: 'Momento',
     icon: '🔥',
     weight: (c) => (c.lastRating !== null && c.lastRating >= 6.9 ? 1 : 0.4),
@@ -561,6 +590,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'slump',
+    conflicts: ['mood'],
     category: 'Momento',
     icon: '📉',
     weight: (c) => (c.career.morale < 50 || (c.lastRating !== null && c.lastRating < 6.6) ? 1.2 : 0.25),
@@ -589,6 +619,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'comeback',
+    conflicts: ['fitness'],
     category: 'Lesão',
     icon: '💪',
     weight: (c) => {
@@ -731,6 +762,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'foreign_offer',
+    conflicts: ['transfer_talk'],
     category: 'Mercado',
     icon: '🌐',
     weight: (c) => (c.ovr >= 68 && c.career.age <= 31 ? 0.8 : 0),
@@ -754,6 +786,7 @@ export const EVENT_DEFS: EventDef[] = [
   },
   {
     id: 'starting_battle',
+    conflicts: ['role'],
     category: 'Treinador',
     icon: '⚔️',
     weight: (c) => (c.startShare >= 0.2 && c.startShare <= 0.65 ? 1.2 : 0),
@@ -772,6 +805,745 @@ export const EVENT_DEFS: EventDef[] = [
         label: 'Ser útil saindo do banco',
         hint: 'Menos minutos, mas entra com o jogo aberto.',
         resolve: () => ok('Você aceitou o papel de 12º jogador.', { startShare: -0.04, form: 0.06, coachTrust: 5 }),
+      },
+    ],
+  },
+  // ---------- Treinador e elenco ----------
+  {
+    id: 'tactical_shift',
+    category: 'Treinador',
+    icon: '🧠',
+    conflicts: ['coach_change'],
+    weight: () => 0.7,
+    params: (_c, rng) => ({ system: rng.pick(['pressão alta o jogo inteiro', 'linha de três zagueiros', 'contra-ataques em velocidade', 'posse de bola paciente']) }),
+    title: () => 'Novo esquema tático',
+    text: (c, p) => `A comissão do ${c.club.name} vai mudar o estilo para ${p.system}. Sua função no time muda junto.`,
+    choices: () => [
+      {
+        label: 'Mergulhar no novo modelo',
+        hint: 'Mais confiança do treinador. A adaptação custa um pouco no começo.',
+        resolve: () => ok('Você estudou cada vídeo e virou peça do novo modelo, mesmo errando no início.', { coachTrust: 8, startShare: 0.05, form: -0.04 }),
+      },
+      {
+        label: 'Manter seu jogo natural',
+        hint: 'Rende no seu estilo, mas o treinador pode te ver como um encaixe ruim.',
+        resolve: () => ok('Você seguiu jogando do seu jeito. Os números vieram, o treinador ficou desconfiado.', { form: 0.05, coachTrust: -6 }),
+      },
+    ],
+  },
+  {
+    id: 'bench_role',
+    category: 'Elenco',
+    icon: '🪑',
+    conflicts: ['role'],
+    weight: (c) => (c.startShare < 0.35 && c.career.age >= 19 && c.career.parentClubId === null ? 1.2 : 0),
+    title: () => 'Fora dos planos',
+    text: (c) => `Na lista da pré-temporada do ${c.club.name}, você aparece como terceira opção para a posição.`,
+    choices: () => [
+      {
+        label: 'Brigar pela vaga',
+        hint: 'Treinos no limite para mudar a opinião do treinador.',
+        resolve: (ctx, _p, rng) =>
+          rng.chance(clamp(0.4 + (ctx.ovr - ctx.club.strength) / 30, 0.15, 0.7))
+            ? ok('O treinador se rendeu: você subiu na hierarquia do elenco.', { startShare: 0.1, coachTrust: 8, injuryRisk: 1.1 })
+            : ok('Você treinou muito, mas a hierarquia não mudou. Pelo menos a forma melhorou.', { form: 0.05, morale: -4, injuryRisk: 1.1 }),
+      },
+      {
+        label: 'Pedir para ser negociado',
+        hint: 'Um clube menor deve aparecer no fim da temporada. O clube atual não gosta.',
+        resolve: (ctx, _p, rng) => {
+          const club = clubNear(ctx, ctx.club.strength - rng.int(2, 6), rng);
+          return ok(`Seu agente já conversa com o ${club.name}, onde você seria titular.`, { promisedClubId: club.id, coachTrust: -8, morale: 2 });
+        },
+      },
+      {
+        label: 'Aceitar o papel de reserva',
+        hint: 'Menos atrito e menos desgaste, mas pouco espaço.',
+        resolve: () => ok('Você aceitou o papel e virou um reserva respeitado no vestiário.', { coachTrust: 5, injuryRisk: 0.9, morale: -4 }),
+      },
+    ],
+  },
+  {
+    id: 'unexpected_chance',
+    category: 'Elenco',
+    icon: '🚪',
+    conflicts: ['role'],
+    weight: (c) => (c.startShare >= 0.2 && c.startShare <= 0.6 ? 0.8 : 0),
+    params: (_c, rng) => ({ name: rng.pick(TEAMMATES) }),
+    title: () => 'A vaga caiu no seu colo',
+    text: (_c, p) => `${p.name}, titular da sua posição, rompeu o ligamento no último amistoso. O treinador vai precisar de você desde a primeira rodada.`,
+    choices: (_c, p) => [
+      {
+        label: 'Assumir a vaga sem medo',
+        hint: 'Mais minutos imediatos. A pressão de substituir um titular é real.',
+        resolve: (_ctx, _p, rng) =>
+          rng.chance(0.65)
+            ? ok(`Você não deixou ninguém sentir falta de ${p.name}.`, { startShare: 0.14, form: 0.04, coachTrust: 5 })
+            : ok('A vaga é sua, mas o peso da responsabilidade apareceu nos primeiros jogos.', { startShare: 0.12, form: -0.06 }),
+      },
+      {
+        label: 'Ganhar espaço aos poucos',
+        hint: 'Menos minutos de cara, adaptação mais tranquila.',
+        resolve: () => ok('Você foi ganhando ritmo sem pressa. O treinador gostou da maturidade.', { startShare: 0.07, morale: 3 }),
+      },
+    ],
+  },
+  {
+    id: 'star_signing',
+    category: 'Clube',
+    icon: '🌟',
+    conflicts: ['club_mood'],
+    weight: (c) => (c.club.strength >= 80 && c.career.age <= 32 ? 0.7 : 0),
+    params: (_c, rng) => ({ name: rng.pick(['Vasquez', 'Mbeki', 'Hartmann', 'Laurent', 'Castellano', 'Yilmaz']) }),
+    title: () => 'Chega um astro',
+    text: (c, p) => `O ${c.club.name} anunciou ${p.name}, um dos maiores nomes do futebol mundial. Ele não joga na sua posição, mas os holofotes mudaram de lugar.`,
+    choices: (_c, p) => [
+      {
+        label: 'Aprender com ele',
+        hint: 'Treinar ao lado de um craque eleva seu teto.',
+        resolve: (ctx) => {
+          const key = attrsByImportance(ctx.career.position)[0];
+          return ok(`Você virou sombra de ${p.name} nos treinos. Seu jogo ganhou outra dimensão.`, { potential: { [key]: 2 }, form: 0.03 });
+        },
+      },
+      {
+        label: 'Disputar o protagonismo',
+        hint: 'Você quer ser a referência do time. Pode render gols ou atrito.',
+        resolve: (_ctx, _p, rng) =>
+          rng.chance(0.5)
+            ? ok('A rivalidade saudável fez bem: vocês dois brilharam.', { goalBonus: 0.015, reputation: 2 })
+            : ok('O vestiário percebeu a disputa de egos, e o treinador também.', { coachTrust: -6, morale: -3 }),
+      },
+    ],
+  },
+  {
+    id: 'key_player_sold',
+    category: 'Clube',
+    icon: '💔',
+    weight: (c) => (c.startShare >= 0.45 && c.career.age >= 20 ? 0.7 : 0),
+    params: (_c, rng) => ({ name: rng.pick(TEAMMATES) }),
+    title: () => 'O clube vendeu uma peça-chave',
+    text: (c, p) => `${p.name}, referência técnica do ${c.club.name}, foi vendido no último dia da janela. A diretoria espera que você ocupe esse vazio.`,
+    choices: () => [
+      {
+        label: 'Assumir a responsabilidade',
+        hint: 'Mais bola no seu pé e mais cobrança.',
+        resolve: () => ok('Você pediu a bola e assumiu o protagonismo.', { goalBonus: 0.015, startShare: 0.04, morale: -2 }),
+      },
+      {
+        label: 'Seguir no seu papel',
+        hint: 'Sem mudanças: o time vai ter que se reinventar.',
+        resolve: () => ok('Você manteve sua função. O time sentiu a saída, mas você seguiu firme.', { form: 0.02 }),
+      },
+      {
+        label: 'Questionar o projeto do clube',
+        hint: 'Um clube mais forte pode aparecer. A diretoria não vai gostar.',
+        resolve: (ctx, _p, rng) => {
+          const club = clubNear(ctx, ctx.club.strength + rng.int(2, 6), rng);
+          return ok(`Suas declarações chegaram ao ${club.name}, que promete uma proposta no fim da temporada.`, { promisedClubId: club.id, coachTrust: -8, reputation: 1 });
+        },
+      },
+    ],
+  },
+  {
+    id: 'club_crisis',
+    category: 'Clube',
+    icon: '🌧️',
+    conflicts: ['club_mood'],
+    weight: (c) => {
+      const last = lastSeason(c);
+      return last && last.clubId === c.club.id && !last.loan && last.leagueSize > 0 && last.leaguePos > last.leagueSize * 0.65 ? 1.2 : 0;
+    },
+    title: () => 'Clube em crise',
+    text: (c) => `Depois da última temporada, o ${c.club.name} vive uma crise: salários atrasados, protestos e a diretoria pedindo sacrifícios.`,
+    choices: () => [
+      {
+        label: 'Aceitar redução salarial',
+        hint: 'Ganha o vestiário e a diretoria. Menos dinheiro no bolso.',
+        resolve: () => ok('Seu gesto virou exemplo e uniu o elenco.', { wageMultiplier: 0.85, coachTrust: 10, morale: 3, reputation: 1 }),
+      },
+      {
+        label: 'Liderar dentro de campo',
+        hint: 'Sem abrir mão do salário, você chama a responsabilidade.',
+        resolve: () => ok('Você virou a voz do elenco no momento difícil.', { coachTrust: 5, morale: -3, form: 0.03 }),
+      },
+      {
+        label: 'Buscar uma saída',
+        hint: 'Garante uma proposta no fim da temporada. A torcida não perdoa.',
+        resolve: (ctx, _p, rng) => {
+          const club = clubNear(ctx, ctx.club.strength + rng.int(-1, 4), rng);
+          return ok(`O ${club.name} vai fazer uma proposta. Nas arquibancadas, você virou alvo.`, { promisedClubId: club.id, morale: -4, coachTrust: -6 });
+        },
+      },
+    ],
+  },
+  {
+    id: 'title_defense',
+    category: 'Clube',
+    icon: '🛡️',
+    conflicts: ['club_mood'],
+    weight: (c) => {
+      const last = lastSeason(c);
+      return last && last.clubId === c.club.id && last.trophies.some((t) => t.kind === 'league' || t.kind === 'continental') ? 1.3 : 0;
+    },
+    priority: () => 0.3,
+    title: () => 'Defender o título',
+    text: (c) => `O ${c.club.name} começa a temporada como campeão. Agora todo adversário joga a vida contra vocês.`,
+    choices: () => [
+      {
+        label: 'Manter a fome de vencer',
+        hint: 'Mais intensidade desde a pré-temporada, mais desgaste.',
+        resolve: () => ok('Você chegou à pré-temporada como se não tivesse ganhado nada.', { form: 0.07, injuryRisk: 1.1, coachTrust: 4 }),
+      },
+      {
+        label: 'Curtir a conquista antes de recomeçar',
+        hint: 'Moral nas alturas, mas o começo pode ser mais lento.',
+        resolve: () => ok('Férias merecidas e cabeça leve. O ritmo de jogo demorou um pouco a voltar.', { morale: 7, form: -0.04 }),
+      },
+    ],
+  },
+  {
+    id: 'continental_stage',
+    category: 'Clube',
+    icon: '🌙',
+    weight: (c) => (c.career.continentalQualified && c.startShare >= 0.4 ? 0.7 : 0),
+    title: () => 'Noites continentais',
+    text: (c) => `O ${c.club.name} está na competição continental. O treinador avisou que vai fazer rodízio entre ela e a liga.`,
+    choices: () => [
+      {
+        label: 'Priorizar a competição continental',
+        hint: 'Mais vitrine internacional, mais viagens e desgaste.',
+        resolve: () => ok('Você pediu para estar em todas as noites grandes.', { reputation: 2, form: 0.03, injuryRisk: 1.15 }),
+      },
+      {
+        label: 'Aceitar o rodízio',
+        hint: 'Menos minutos, corpo mais preservado.',
+        resolve: () => ok('Você aceitou o rodízio e chega inteiro aos jogos decisivos.', { startShare: -0.04, injuryRisk: 0.85, coachTrust: 3 }),
+      },
+    ],
+  },
+  {
+    id: 'loan_spell',
+    category: 'Empréstimo',
+    icon: '📦',
+    weight: (c) => (c.career.parentClubId !== null ? 1.3 : 0),
+    title: () => 'De olho no clube dono do passe',
+    text: (c) => {
+      const parent = CLUBS.find((cl) => cl.id === c.career.parentClubId);
+      return `O ${parent?.name ?? 'clube dono do seu passe'} vai acompanhar cada jogo seu no ${c.club.name}. O que você faz nesta temporada pesa no seu futuro.`;
+    },
+    choices: () => [
+      {
+        label: 'Jogar para impressionar quem te emprestou',
+        hint: 'Intensidade máxima em cada lance.',
+        resolve: () => ok('Os relatórios que chegam ao clube dono do seu passe são ótimos.', { form: 0.06, injuryRisk: 1.1 }),
+      },
+      {
+        label: 'Se entregar ao clube atual',
+        hint: 'Mais confiança do treinador e mais minutos agora.',
+        resolve: () => ok('Você vestiu a camisa do clube e virou peça importante do elenco.', { coachTrust: 8, startShare: 0.05, morale: 3 }),
+      },
+    ],
+  },
+  {
+    id: 'adaptation',
+    category: 'Adaptação',
+    icon: '🧳',
+    weight: (c) => (justArrived(c) ? 1.6 : 0),
+    priority: () => 0.5,
+    title: () => 'Vida nova',
+    text: (c) =>
+      c.club.country !== c.career.profile.nationality
+        ? `Novo país, nova língua, novo vestiário. Os primeiros dias no ${c.club.name} vão definir a sua adaptação.`
+        : `Nova cidade e novo vestiário. Os primeiros dias no ${c.club.name} vão definir a sua adaptação.`,
+    choices: () => [
+      {
+        label: 'Integrar-se com calma',
+        hint: 'Aulas, jantares com o elenco, rotina organizada. O rendimento vem com o tempo.',
+        resolve: () => ok('Você se sentiu em casa rapidamente. O elenco te abraçou.', { morale: 6, coachTrust: 4, form: -0.02 }),
+      },
+      {
+        label: 'Mostrar serviço logo de cara',
+        hint: 'Pode ganhar a vaga rápido. O corpo e a cabeça cobram.',
+        resolve: (_c, _p, rng) =>
+          rng.chance(0.6)
+            ? ok('Você chegou voando e conquistou a torcida nas primeiras semanas.', { startShare: 0.07, reputation: 1, injuryRisk: 1.1 })
+            : ok('A ansiedade pesou: a estreia ficou abaixo do esperado.', { form: -0.06, morale: -3 }),
+      },
+    ],
+  },
+  // ---------- Desempenho ----------
+  {
+    id: 'goal_drought',
+    category: 'Momento',
+    icon: '🥅',
+    weight: (c) => {
+      const last = lastSeason(c);
+      return POSITIONS[c.career.position].group === 'att' && last && last.apps >= 15 && last.goals < last.apps * 0.2 ? 1.2 : 0;
+    },
+    title: () => 'O gol sumiu',
+    text: () => 'Você terminou a última temporada com poucos gols para um atacante. A cobrança começou cedo.',
+    choices: () => [
+      {
+        label: 'Ficar depois do treino finalizando',
+        hint: 'Mais gols, mais carga no corpo.',
+        resolve: () => ok('Centenas de finalizações por semana. O pé voltou a calibrar.', { goalBonus: 0.02, injuryRisk: 1.1 }),
+      },
+      {
+        label: 'Jogar mais para o time',
+        hint: 'Menos obsessão pelo gol, mais participação no jogo.',
+        resolve: () => ok('Você passou a abrir espaços e servir os companheiros. O treinador adorou.', { form: 0.05, coachTrust: 5, goalBonus: -0.01 }),
+      },
+    ],
+  },
+  {
+    id: 'marked_man',
+    category: 'Momento',
+    icon: '🎯',
+    weight: (c) => (c.lastRating !== null && c.lastRating >= 7.4 ? 1 : 0),
+    title: () => 'Todo mundo te conhece agora',
+    text: () => 'Depois da temporada que você fez, os adversários estudaram seu jogo. Marcação dobrada já nos amistosos.',
+    choices: () => [
+      {
+        label: 'Reinventar seu repertório',
+        hint: 'Trabalho com a análise de desempenho. Seu teto sobe, mas leva tempo.',
+        resolve: (ctx) => {
+          const keys = attrsByImportance(ctx.career.position).slice(1, 3);
+          return ok('Você ganhou novas armas. Os primeiros meses foram de ajuste.', { potential: Object.fromEntries(keys.map((k) => [k, 1])) as Attributes, form: -0.03 });
+        },
+      },
+      {
+        label: 'Confiar no que deu certo',
+        hint: 'Se funcionou antes, pode funcionar de novo... ou não.',
+        resolve: (_c, _p, rng) =>
+          rng.chance(0.5)
+            ? ok('Nem a marcação dobrada conseguiu te parar.', { form: 0.08, reputation: 1 })
+            : ok('Os adversários tinham a lição de casa feita. Foi uma temporada mais difícil.', { form: -0.07 }),
+      },
+    ],
+  },
+  {
+    id: 'bounce_back',
+    category: 'Momento',
+    icon: '🔁',
+    conflicts: ['mood'],
+    weight: (c) => (c.lastRating !== null && c.lastRating < 6.6 && c.career.age <= 32 ? 1 : 0),
+    title: () => 'Pré-temporada da redenção',
+    text: () => 'A última temporada ficou abaixo do que você esperava. Você chega à pré-temporada querendo provar que foi só uma fase.',
+    choices: () => [
+      {
+        label: 'Contratar um preparador particular',
+        hint: 'Corpo mais forte e menos lesões. Efeito gradual.',
+        resolve: () => ok('Você voltou das férias em outra forma física.', { injuryRisk: 0.85, form: 0.04 }),
+      },
+      {
+        label: 'Pedir mais minutos ao treinador',
+        hint: 'Mais chances de mostrar serviço, mas o treinador pode se irritar.',
+        resolve: (_c, _p, rng) =>
+          rng.chance(0.5)
+            ? ok('O treinador topou te dar uma nova chance como titular.', { startShare: 0.08 })
+            : ok('O treinador não gostou da cobrança: “minutos se ganham no treino”.', { coachTrust: -6, morale: -2 }),
+      },
+      {
+        label: 'Desligar do barulho',
+        hint: 'Cabeça fresca, sem prometer nada.',
+        resolve: () => ok('Você saiu das redes e voltou a jogar por prazer.', { morale: 7 }),
+      },
+    ],
+  },
+  {
+    id: 'big_match_nerves',
+    category: 'Momento',
+    icon: '🏟️',
+    weight: (c) => (c.career.age <= 23 && c.club.strength >= 75 && c.startShare >= 0.4 ? 0.8 : 0),
+    title: () => 'Primeiro clássico como titular',
+    text: (c) => `O ${c.club.name} abre a temporada num clássico com estádio lotado, e seu nome está na escalação.`,
+    choices: () => [
+      {
+        label: 'Chamar o jogo para você',
+        hint: 'Se der certo, vira manchete. Se der errado, também.',
+        resolve: (_c, _p, rng) =>
+          rng.chance(0.55)
+            ? ok('Atuação de gente grande. Seu nome dominou o noticiário da semana.', { reputation: 3, form: 0.06, morale: 5 })
+            : ok('A estreia em clássico pesou: você sumiu do jogo e foi substituído.', { form: -0.05, morale: -4 }),
+      },
+      {
+        label: 'Jogar simples',
+        hint: 'Sem brilho, sem erros. O treinador aprova.',
+        resolve: () => ok('Você jogou sem errar e ganhou a confiança do treinador.', { coachTrust: 5, form: 0.02 }),
+      },
+    ],
+  },
+  // ---------- Marcos ----------
+  {
+    id: 'milestone_goals',
+    category: 'Marco',
+    icon: '💯',
+    weight: (c) => {
+      const last = lastSeason(c);
+      const total = careerTotal(c, 'goals');
+      const mark = nextMilestone(total, GOAL_MARKS);
+      return last && mark && mark - total <= Math.max(3, last.goals * 0.8) ? 1.1 : 0;
+    },
+    priority: () => 0.35,
+    params: (c) => {
+      const total = careerTotal(c, 'goals');
+      const mark = nextMilestone(total, GOAL_MARKS) ?? total + 1;
+      return { mark, missing: mark - total };
+    },
+    title: (p) => `Rumo ao gol ${p.mark}`,
+    text: (_c, p) => `Faltam ${p.missing} ${Number(p.missing) === 1 ? 'gol' : 'gols'} para você chegar a ${p.mark} na carreira por clubes. A contagem já começou nos jornais.`,
+    choices: () => [
+      {
+        label: 'Deixar acontecer naturalmente',
+        hint: 'Sem pressa: o marco vem jogando para o time.',
+        resolve: () => ok('Você tirou o marco da cabeça e seguiu jogando.', { form: 0.04, coachTrust: 2 }),
+      },
+      {
+        label: 'Ir atrás do marco',
+        hint: 'Mais finalizações, mas o elenco pode achar individualista.',
+        resolve: () => ok('Você passou a finalizar de qualquer lugar. Os gols vêm, os passes nem tanto.', { goalBonus: 0.015, coachTrust: -4 }),
+      },
+    ],
+  },
+  {
+    id: 'milestone_apps',
+    category: 'Marco',
+    icon: '🎖️',
+    weight: (c) => {
+      const last = lastSeason(c);
+      const total = careerTotal(c, 'apps');
+      const mark = nextMilestone(total, APP_MARKS);
+      return last && mark && mark - total <= Math.max(5, last.apps * 0.8) ? 0.9 : 0;
+    },
+    params: (c) => {
+      const total = careerTotal(c, 'apps');
+      const mark = nextMilestone(total, APP_MARKS) ?? total + 1;
+      return { mark, missing: mark - total };
+    },
+    title: (p) => `${p.mark} jogos na carreira`,
+    text: (_c, p) => `Se a temporada correr bem, você vai completar ${p.mark} jogos como profissional. ${Number(p.missing) === 1 ? 'Falta só 1' : `Faltam ${p.missing}`}.`,
+    choices: () => [
+      {
+        label: 'Comemorar com a torcida',
+        hint: 'Uma festa no estádio quando o marco chegar.',
+        resolve: () => ok('O clube já prepara uma camisa comemorativa para o dia.', { morale: 5, reputation: 1 }),
+      },
+      {
+        label: 'Dedicar a quem te ajudou',
+        hint: 'Um momento discreto com família e antigos treinadores.',
+        resolve: () => ok('Você vai dedicar o marco a quem esteve com você desde a base.', { morale: 4, coachTrust: 2 }),
+      },
+    ],
+  },
+  {
+    id: 'club_tribute',
+    category: 'Marco',
+    icon: '🎗️',
+    weight: (c) => (seasonsAtClub(c) >= 5 && c.career.age >= 26 ? 1 : 0),
+    params: (c) => ({ years: seasonsAtClub(c) }),
+    title: () => 'Homenagem do clube',
+    text: (c, p) => `O ${c.club.name} vai homenagear suas ${p.years} temporadas seguidas no clube antes do primeiro jogo em casa.`,
+    choices: () => [
+      {
+        label: 'Discurso emocionado no gramado',
+        hint: 'Laço ainda mais forte com o clube.',
+        resolve: () => ok('O estádio inteiro cantou seu nome. Difícil segurar as lágrimas.', { morale: 7, reputation: 2, coachTrust: 3 }),
+      },
+      {
+        label: 'Aproveitar para renegociar',
+        hint: 'Um aumento é provável, mas a torcida pode achar oportunismo.',
+        resolve: () => ok('A diretoria aceitou um reajuste. Alguns torcedores não gostaram do momento.', { wageMultiplier: 1.12, morale: -2 }),
+      },
+    ],
+  },
+  // ---------- Seleção ----------
+  {
+    id: 'youth_tournament',
+    category: 'Seleção',
+    icon: '🌱',
+    weight: (c) => (c.career.age <= 20 && c.career.national.caps === 0 ? 0.8 : 0),
+    title: () => 'Convocação para a seleção de base',
+    text: () => 'A seleção sub-20 do seu país quer você em um torneio internacional no início da temporada, justamente quando o clube define os titulares.',
+    choices: () => [
+      {
+        label: 'Ir ao torneio',
+        hint: 'Experiência internacional e vitrine. Perde parte da pré-temporada no clube.',
+        resolve: (ctx) => {
+          const key = attrsByImportance(ctx.career.position)[0];
+          return ok('Você jogou contra os melhores da sua idade e voltou mais maduro.', { potential: { [key]: 1 }, reputation: 2, callup: 0.2, startShare: -0.05 });
+        },
+      },
+      {
+        label: 'Ficar no clube',
+        hint: 'Brigar por espaço no elenco principal desde o primeiro dia.',
+        resolve: () => ok('Você ficou e o treinador notou o comprometimento.', { startShare: 0.05, coachTrust: 5 }),
+      },
+    ],
+  },
+  {
+    id: 'national_snub',
+    category: 'Seleção',
+    icon: '📵',
+    weight: (c) => {
+      const last = lastSeason(c);
+      return c.career.national.caps > 0 && last && !last.national.calledUp && c.career.age <= 33 ? 1.1 : 0;
+    },
+    title: () => 'Fora da seleção',
+    text: () => 'Seu nome ficou fora das últimas listas da seleção. Jornalistas perguntam se a sua história com a camisa acabou.',
+    choices: () => [
+      {
+        label: 'Responder em campo',
+        hint: 'Jogar cada partida pensando na próxima convocação.',
+        resolve: () => ok('Você transformou a ausência em motivação.', { callup: 0.5, form: 0.04, injuryRisk: 1.1 }),
+      },
+      {
+        label: 'Cobrar o técnico publicamente',
+        hint: 'Pode pressioná-lo... ou fechar a porta de vez.',
+        resolve: (_c, _p, rng) =>
+          rng.chance(0.4)
+            ? ok('A imprensa comprou sua briga e o técnico prometeu te observar.', { callup: 0.5, reputation: 1 })
+            : ok('O técnico da seleção não gostou nada. A porta ficou mais fechada.', { callup: -0.5, morale: -3 }),
+      },
+      {
+        label: 'Focar só no clube',
+        hint: 'Menos pressão. A seleção fica em segundo plano.',
+        resolve: () => ok('Você decidiu que a seleção vai ser consequência.', { coachTrust: 4, form: 0.03, callup: -0.2 }),
+      },
+    ],
+  },
+  {
+    id: 'national_veteran',
+    category: 'Seleção',
+    icon: '🧓',
+    weight: (c) => {
+      const last = lastSeason(c);
+      return c.career.age >= 31 && c.career.national.caps >= 10 && last?.national.calledUp ? 1.1 : 0;
+    },
+    title: () => 'Renovação na seleção',
+    text: () => 'O técnico da seleção quer renovar o grupo e perguntou, com respeito, se você ainda quer ser convocado.',
+    choices: () => [
+      {
+        label: 'Seguir à disposição',
+        hint: 'Mantém a seleção, mas o calendário pesa no corpo.',
+        resolve: () => ok('Você segue no grupo, agora como uma das vozes mais experientes.', { callup: 0.3, injuryRisk: 1.1 }),
+      },
+      {
+        label: 'Abrir espaço para os jovens',
+        hint: 'Menos convocações, mais descanso para render no clube.',
+        resolve: () => ok('Você deixou a seleção em segundo plano. O clube agradece o corpo descansado.', { callup: -1, injuryRisk: 0.8, coachTrust: 4, morale: 2 }),
+      },
+    ],
+  },
+  // ---------- Mercado ----------
+  {
+    id: 'same_league_rival',
+    category: 'Mercado',
+    icon: '🔀',
+    conflicts: ['transfer_talk'],
+    weight: (c) =>
+      c.ovr >= 66 && c.career.age <= 31 && c.career.parentClubId === null && CLUBS.some((cl) => cl.leagueId === c.club.leagueId && cl.strength > c.club.strength)
+        ? 0.7
+        : 0,
+    params: (c, rng) => {
+      const club = clubNear(c, c.club.strength + rng.int(3, 8), rng, (cl) => cl.leagueId === c.club.leagueId && cl.strength > c.club.strength);
+      return { clubId: club.id, name: club.name };
+    },
+    title: () => 'Sondagem de um rival da liga',
+    text: (c, p) => `O ${p.name}, adversário do ${c.club.name} na liga, quer te contratar. A notícia vazou e a torcida já se manifesta.`,
+    choices: (_c, p) => [
+      {
+        label: 'Ouvir a proposta',
+        hint: 'Garante a proposta no fim da temporada. A torcida vai chamar de traição.',
+        resolve: () => ok(`O ${p.name} vai formalizar a oferta. No seu estádio, você ouviu as primeiras vaias.`, { promisedClubId: String(p.clubId), morale: -4, coachTrust: -6 }),
+      },
+      {
+        label: 'Fechar a porta publicamente',
+        hint: 'A torcida te abraça. O rival vira a página.',
+        resolve: () => ok('Sua resposta virou faixa na arquibancada.', { morale: 5, reputation: 1, coachTrust: 4 }),
+      },
+    ],
+  },
+  {
+    id: 'homeland_call',
+    category: 'Mercado',
+    icon: '🏠',
+    conflicts: ['transfer_talk'],
+    weight: (c) =>
+      c.career.age >= 29 && c.club.country !== c.career.profile.nationality && CLUBS.some((cl) => cl.country === c.career.profile.nationality) ? 0.9 : 0,
+    title: () => 'O chamado de casa',
+    text: (c) => `Um clube de ${getCountry(c.career.profile.nationality).name} procurou seu agente: querem você de volta ao seu país.`,
+    choices: () => [
+      {
+        label: 'Abrir conversa',
+        hint: 'Garante uma proposta de um clube do seu país no fim da temporada.',
+        resolve: (ctx, _p, rng) => {
+          const home = ctx.career.profile.nationality;
+          const club = clubNear(ctx, Math.min(ctx.ovr, ctx.club.strength) - rng.int(0, 4), rng, (cl) => cl.country === home);
+          return ok(`O ${club.name} vai fazer a proposta. A ideia de voltar para casa mexeu com você.`, { promisedClubId: club.id, morale: 4, coachTrust: -3 });
+        },
+      },
+      {
+        label: 'Ainda não é a hora',
+        hint: 'Você quer seguir competindo no exterior.',
+        resolve: () => ok('Você agradeceu o carinho, mas segue focado onde está.', { form: 0.03, coachTrust: 3 }),
+      },
+    ],
+  },
+  {
+    id: 'transfer_rumours',
+    category: 'Mercado',
+    icon: '🗞️',
+    conflicts: ['transfer_talk'],
+    weight: (c) => (c.career.reputation >= 45 && c.career.parentClubId === null ? 0.8 : 0),
+    params: (c, rng) => ({ name: clubNear(c, c.club.strength + rng.int(3, 8), rng).name }),
+    title: () => 'Especulação nos jornais',
+    text: (c, p) => `Jornais garantem que você já acertou com o ${p.name}. Ninguém te procurou, mas a torcida do ${c.club.name} quer uma resposta.`,
+    choices: () => [
+      {
+        label: 'Desmentir',
+        hint: 'O assunto morre e o clube agradece.',
+        resolve: () => ok('Você desmentiu tudo. O vestiário respirou aliviado.', { coachTrust: 4, morale: 1 }),
+      },
+      {
+        label: 'Não comentar',
+        hint: 'Sua cotação sobe, mas o barulho atrapalha.',
+        resolve: () => ok('O silêncio alimentou as manchetes durante semanas.', { reputation: 2, coachTrust: -4, form: -0.03 }),
+      },
+    ],
+  },
+  {
+    id: 'low_form_offer',
+    category: 'Mercado',
+    icon: '🪂',
+    conflicts: ['transfer_talk'],
+    weight: (c) => (c.lastRating !== null && c.lastRating < 6.6 && c.career.age >= 22 && c.career.age <= 31 && c.career.parentClubId === null ? 0.9 : 0),
+    title: () => 'Proposta na hora difícil',
+    text: () => 'Mesmo depois de uma temporada fraca, um clube menor procurou seu agente: lá você seria protagonista.',
+    choices: () => [
+      {
+        label: 'Aceitar conversar',
+        hint: 'Um recomeço como titular em um clube menor no fim da temporada.',
+        resolve: (ctx, _p, rng) => {
+          const club = clubNear(ctx, ctx.club.strength - rng.int(3, 7), rng);
+          return ok(`O ${club.name} vai fazer a proposta. Pode ser o recomeço que você precisa.`, { promisedClubId: club.id, morale: 3, coachTrust: -4 });
+        },
+      },
+      {
+        label: 'Ficar e virar o jogo',
+        hint: 'Você quer reconquistar seu espaço onde está.',
+        resolve: () => ok('Você decidiu ficar e lutar pelo seu lugar.', { form: 0.04, morale: -2, coachTrust: 4 }),
+      },
+    ],
+  },
+  // ---------- Físico ----------
+  {
+    id: 'fatigue_warning',
+    category: 'Físico',
+    icon: '🔋',
+    weight: (c) => {
+      const last = lastSeason(c);
+      return last && (last.minutes >= 3800 || last.apps >= 52) ? 1.1 : 0;
+    },
+    title: () => 'Sinal amarelo na fisiologia',
+    text: () => 'Depois de uma temporada com muitos minutos, os exames da pré-temporada mostram sinais de sobrecarga.',
+    choices: () => [
+      {
+        label: 'Seguir o plano de carga',
+        hint: 'Alguns jogos poupados, risco de lesão bem menor.',
+        resolve: () => ok('Você seguiu a fisiologia à risca e vai ser poupado em alguns jogos.', { injuryRisk: 0.75, startShare: -0.06 }),
+      },
+      {
+        label: 'Ignorar e jogar tudo',
+        hint: 'Mais minutos, mais risco.',
+        resolve: () => ok('Você quer estar em campo em todos os jogos, com ou sem alerta.', { injuryRisk: 1.3, startShare: 0.03, coachTrust: -2 }),
+      },
+    ],
+  },
+  {
+    id: 'fitness_peak',
+    category: 'Físico',
+    icon: '🏃',
+    conflicts: ['fitness'],
+    weight: (c) => {
+      const last = lastSeason(c);
+      return c.career.age >= 20 && c.career.age <= 29 && last && !last.injuries.some((i) => i.games >= 5) ? 0.7 : 0;
+    },
+    title: () => 'Melhores testes físicos da carreira',
+    text: () => 'Os testes da pré-temporada mostraram os melhores números da sua carreira em velocidade e resistência.',
+    choices: () => [
+      {
+        label: 'Aproveitar para treinar explosão',
+        hint: 'Ganho físico imediato, um pouco mais de risco de lesão.',
+        resolve: () => ok('Você subiu a carga de treinos de força e explosão.', { attributes: { pac: 1, phy: 1 }, injuryRisk: 1.1 }),
+      },
+      {
+        label: 'Manter o equilíbrio',
+        hint: 'Chegar inteiro e confiante ao início da temporada.',
+        resolve: () => ok('Você manteve a rotina e chega afiado à primeira rodada.', { form: 0.05, injuryRisk: 0.95 }),
+      },
+    ],
+  },
+  {
+    id: 'nagging_knock',
+    category: 'Físico',
+    icon: '🦵',
+    conflicts: ['fitness'],
+    weight: (c) => (c.career.age >= 26 ? 0.5 + Math.max(0, c.career.age - 30) * 0.1 : 0),
+    title: () => 'Incômodo no tornozelo',
+    text: () => 'Um incômodo no tornozelo apareceu no fim da pré-temporada. Os médicos dizem que dá para jogar, mas não seria o ideal.',
+    choices: () => [
+      {
+        label: 'Jogar no sacrifício',
+        hint: 'O treinador valoriza a entrega. O corpo pode cobrar.',
+        resolve: () => ok('Você entrou em campo com o tornozelo enfaixado.', { coachTrust: 5, form: -0.04, injuryRisk: 1.25 }),
+      },
+      {
+        label: 'Parar para tratar',
+        hint: 'Perde os primeiros jogos e volta sem dor.',
+        resolve: (_c, _p, rng) => ok('Duas semanas de tratamento e o incômodo desapareceu.', { preseasonInjuryGames: rng.int(1, 3), injuryRisk: 0.85 }),
+      },
+    ],
+  },
+  // ---------- Fim de carreira ----------
+  {
+    id: 'veteran_leader',
+    category: 'Liderança',
+    icon: '🧭',
+    weight: (c) => (c.career.age >= 31 ? 1 : 0),
+    params: (_c, rng) => ({ name: rng.pick(TEAMMATES) }),
+    title: () => 'Referência para os jovens',
+    text: (c, p) => `${p.name}, de 18 anos, é a maior promessa da base do ${c.club.name}. O treinador quer que você seja o mentor dele.`,
+    choices: () => [
+      {
+        label: 'Abraçar o papel de mentor',
+        hint: 'Respeito no vestiário. Divide tempo e minutos com o garoto.',
+        resolve: () => ok('Você virou o conselheiro do vestiário.', { coachTrust: 8, morale: 5, startShare: -0.04 }),
+      },
+      {
+        label: 'Focar no seu próprio jogo',
+        hint: 'Sua prioridade continua sendo render em campo.',
+        resolve: () => ok('Você deixou claro que ainda está aqui para jogar.', { form: 0.04, coachTrust: -2 }),
+      },
+    ],
+  },
+  {
+    id: 'retirement_whispers',
+    category: 'Carreira',
+    icon: '⌛',
+    weight: (c) => (c.career.age >= 33 && !c.career.retireAnnounced ? 1.1 : 0),
+    title: () => 'Perguntas sobre o futuro',
+    text: () => 'Em toda entrevista a pergunta se repete: até quando você vai jogar? A decisão continua sendo sua.',
+    choices: () => [
+      {
+        label: '"Ainda tenho muito a dar"',
+        hint: 'Motivação extra para provar que segue em alto nível.',
+        resolve: () => ok('Você respondeu com fome de bola. A imprensa adorou.', { morale: 4, form: 0.04 }),
+      },
+      {
+        label: 'Aproveitar cada jogo',
+        hint: 'Sem pressão, curtindo a reta final. A torcida retribui o carinho.',
+        resolve: () => ok('Você passou a jogar com outro sorriso no rosto.', { morale: 6, reputation: 1, coachTrust: 2 }),
       },
     ],
   },

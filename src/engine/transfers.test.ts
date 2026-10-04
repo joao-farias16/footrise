@@ -13,6 +13,7 @@ import {
   startSeason,
   stayAtClub,
 } from './career';
+import { clubFinance, marketValue, transferBudget, transferFee } from './market';
 import { declineFactor, initialClubPool, initialOffers, originClubId, seasonOffers } from './offers';
 import { Rng } from './rng';
 import { hubCareer, profile, withAttributes } from './testUtils';
@@ -179,5 +180,44 @@ describe('mercado de fim de carreira', () => {
         expect(getClub(o.clubId)!.strength).toBeLessThanOrEqual(66 + 12);
       }
     }
+  });
+});
+
+describe('economia das transferências', () => {
+  const club = (id: string) => getClub(id)!;
+  function fees(value: number, id: string, runs = 2000) {
+    const rng = new Rng(11);
+    const xs = Array.from({ length: runs }, () => transferFee(value, club(id), rng)).sort((a, b) => a - b);
+    return { min: xs[0], median: xs[runs >> 1], max: xs[runs - 1] };
+  }
+
+  it('poder financeiro não é o mesmo que força do elenco', () => {
+    // Leverkusen é tão forte quanto o Atlético, mas tem menos dinheiro que os gigantes.
+    expect(club('bayer-leverkusen').strength).toBeGreaterThanOrEqual(club('atletico-de-madrid').strength);
+    expect(clubFinance(club('bayer-leverkusen'))).toBeLessThan(clubFinance(club('atletico-de-madrid')));
+    expect(transferBudget(club('real-madrid'))).toBeGreaterThan(transferBudget(club('bayer-leverkusen')) * 1.6);
+    expect(transferBudget(club('bayer-leverkusen'))).toBeGreaterThan(transferBudget(club('celtic')));
+  });
+
+  it('por um craque, clubes ricos disputam mais alto e os menores ficam abaixo deles', () => {
+    const value = marketValue(92, 24, 90);
+    const real = fees(value, 'real-madrid');
+    const b04 = fees(value, 'bayer-leverkusen');
+    const celtic = fees(value, 'celtic');
+    expect(real.median).toBeGreaterThan(b04.max);
+    expect(b04.median).toBeGreaterThan(celtic.median);
+    // Proposta altíssima segue possível, e o clube menor ainda oferece um valor relevante.
+    expect(real.max).toBeGreaterThan(value * 1.3);
+    expect(b04.median).toBeGreaterThan(value * 0.8);
+    // Nunca é um valor fixo por clube.
+    for (const f of [real, b04, celtic]) expect(f.max - f.min).toBeGreaterThan(value * 0.05);
+  });
+
+  it('jogadores de valor comum custam praticamente o mesmo para qualquer comprador', () => {
+    const value = marketValue(78, 25, 40);
+    const rich = fees(value, 'manchester-city');
+    const small = fees(value, 'celtic');
+    expect(small.median / rich.median).toBeGreaterThan(0.93);
+    expect(small.min).toBeGreaterThan(value * 0.85);
   });
 });

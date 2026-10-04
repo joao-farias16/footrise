@@ -56,7 +56,7 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
         <StatTile label="Assistências" value={s.totals.assists.toLocaleString('pt-BR')} />
         <StatTile label="Nota média" value={<span className={ratingClass(s.totals.avgRating)}>{s.totals.avgRating > 0 ? s.totals.avgRating.toFixed(2) : '—'}</span>} sub="ponderada pelos jogos" />
         <StatTile label="Títulos" value={s.trophies.length} sub={big.length > 0 ? `${big.reduce((t, g) => t + g.years.length, 0)} grandes` : undefined} />
-        <StatTile label="Prêmios" value={s.awards.length} sub={worldAwards > 0 ? `${worldAwards}× Coroa de Ouro` : undefined} />
+        <StatTile label="Prêmios" value={s.awards.length} sub={worldAwards > 0 ? `${worldAwards}× Bola de Ouro` : undefined} />
         <StatTile label="Pico de OVR" value={<span className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</span>} sub={s.evolution.peakOvrSeason ?? undefined} />
         <StatTile label="Maior valor" value={formatMoney(s.evolution.peakValue)} />
         <StatTile label="Salários recebidos" value={formatMoney(s.earnings.total)} sub={`pico de ${formatMoney(s.earnings.peakWeeklyWage)}/sem`} />
@@ -375,7 +375,7 @@ function LegacyHero({ s, retiring }: { s: CareerSummary; retiring: boolean }) {
       </div>
       <div className="legacy-ring" style={{ ['--p' as string]: s.evolution.peakOvr, ['--ring' as string]: ringColor(s.evolution.peakOvr) }}>
         <div style={{ textAlign: 'center' }}>
-          <div className="eyebrow">Legado</div>
+          <div className="eyebrow">OVR máximo</div>
           <div className="legacy-score">{s.evolution.peakOvr}</div>
           <div className="faint">/ 100</div>
         </div>

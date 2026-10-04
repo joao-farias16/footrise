@@ -37,7 +37,7 @@ const legend: LegacyInput = {
     ...trophies('worldCup', 'Copa do Mundo', 1),
     ...trophies('cup', 'Copa do Rei', 5),
   ],
-  awards: Array.from({ length: 6 }, (_, i) => ({ kind: 'world' as const, name: 'Coroa de Ouro FootRise', season: `${i}` })),
+  awards: Array.from({ length: 6 }, (_, i) => ({ kind: 'world' as const, name: 'Bola de Ouro', season: `${i}` })),
   nationalCaps: 160,
   nationalGoals: 90,
   playedWorldCup: true,

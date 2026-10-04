@@ -2,6 +2,7 @@ import { attrKeysFor, attrsByImportance } from '../config/positions';
 import { getClub } from '../data/clubs';
 import { getCountry } from '../data/countries';
 import type { Career, CareerSummary, ClubSpellSummary, DetailStats, SeasonSummary } from '../types';
+import { renameLegacyAward } from './awards';
 import { computeLegacy, legacyInputFromCareer } from './legacy';
 import { computeOverall } from './overall';
 import { shirtHistory } from './shirt';
@@ -244,9 +245,11 @@ export function sanitizeSummary(raw: unknown): CareerSummary | null {
   return {
     ...(s as CareerSummary),
     evolution: sanitizeEvolution(s.evolution, s.seasons),
+    // Resumos anteriores à Bola de Ouro guardam o nome antigo do prêmio.
+    seasons: s.seasons.map((x) => (isObject(x) && Array.isArray(x.awards) ? { ...x, awards: x.awards.map((a) => (typeof a === 'string' ? renameLegacyAward(a) : a)) } : x)),
     savedAt: typeof s.savedAt === 'number' ? s.savedAt : 0,
     cloudUid: s.cloudUid ?? null,
-    awards: Array.isArray(s.awards) ? s.awards : [],
+    awards: Array.isArray(s.awards) ? s.awards.map((a) => (isObject(a) && typeof a.name === 'string' ? { ...a, name: renameLegacyAward(a.name) } : a)) : [],
     transfers: Array.isArray(s.transfers) ? s.transfers : [],
     shirtNumbers: Array.isArray(s.shirtNumbers) ? s.shirtNumbers : [],
   };

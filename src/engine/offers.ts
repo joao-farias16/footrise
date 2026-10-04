@@ -1,8 +1,8 @@
-import { CAREER, MARKET, OFFERS, TWILIGHT } from '../config/balance';
+import { CAREER, OFFERS, TWILIGHT } from '../config/balance';
 import { CLUBS, clubsOfCountry, getClub, getLeague } from '../data/clubs';
 import { getCountry } from '../data/countries';
 import type { Career, Club, Offer, OfferKind, PositionId, SeasonRecord } from '../types';
-import { expectedStartShare, marketValue, weeklyWage } from './market';
+import { expectedStartShare, marketValue, transferFee, weeklyWage } from './market';
 import { computeOverall } from './overall';
 import { clamp, type Rng } from './rng';
 
@@ -29,7 +29,7 @@ export function buildOffer(
 ): Offer {
   const league = getLeague(club.leagueId);
   const wage = weeklyWage(ovr, reputation, league.wageLevel) * (kind === 'loan' ? 1 : rng.range(1, 1.3));
-  const fee = kind === 'transfer' ? marketValue(ovr, age, reputation) * MARKET.feeMultiplier * rng.range(0.85, 1.25) : 0;
+  const fee = kind === 'transfer' ? transferFee(marketValue(ovr, age, reputation), club, rng) : 0;
   return {
     id: offerId(rng),
     kind,

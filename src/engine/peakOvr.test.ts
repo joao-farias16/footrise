@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OUTFIELD_KEYS } from '../config/positions';
-import { sanitizeCareer } from '../state/storage';
+import { loadCareerHistory, memoryStore, sanitizeCareer, saveCareerSummary } from '../state/storage';
 import type { Career } from '../types';
 import { autoplayCareer } from './autoplay';
 import { buildCareerSummary, careerPeakOvr, sanitizeSummary } from './careerSummary';
@@ -55,5 +55,31 @@ describe('pico de OVR x OVR final', () => {
     expect(old.seasons).toHaveLength(CURVE.length);
 
     expect(sanitizeSummary(s)!.evolution).toEqual(s.evolution);
+  });
+
+  it('"Minhas carreiras" e o resumo leem o mesmo pico depois de salvar e recarregar', () => {
+    const store = memoryStore();
+    const declined = curveCareer();
+    const steady = curveCareer();
+    steady.id = `${steady.id}-steady`;
+    steady.seasons = steady.seasons.slice(0, 4);
+    for (const k of OUTFIELD_KEYS) steady.attributes[k] = 99;
+    steady.peakOvr = computeOverall(steady.attributes, steady.position);
+    const simulated = autoplayCareer(profile('MEI'), 777, { retireAge: 36 });
+
+    for (const c of [declined, steady, simulated]) saveCareerSummary(store, buildCareerSummary(c));
+    const byId = new Map(loadCareerHistory(store).map((s) => [s.careerId, s]));
+
+    const d = byId.get(declined.id)!;
+    expect(d.evolution.peakOvr).toBe(96);
+    expect(d.evolution.finalOvr).toBe(66);
+
+    const st = byId.get(steady.id)!;
+    expect(st.evolution.peakOvr).toBe(st.evolution.finalOvr);
+
+    const sim = byId.get(simulated.id)!;
+    const seasonsMax = Math.max(...simulated.seasons.flatMap((x) => [x.ovrStart, x.ovrEnd]));
+    expect(sim.evolution.peakOvr).toBe(Math.max(seasonsMax, sim.evolution.finalOvr));
+    expect(sim.evolution.peakOvr).toBeGreaterThanOrEqual(sim.evolution.finalOvr);
   });
 });

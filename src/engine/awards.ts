@@ -3,6 +3,15 @@ import { POSITIONS } from '../config/positions';
 import type { Award, League, PositionId, TrophyKind } from '../types';
 import type { Rng } from './rng';
 
+/** Prêmio anual de melhor jogador do mundo (antes chamado "Coroa de Ouro FootRise"). */
+export const WORLD_AWARD_NAME = 'Bola de Ouro';
+const LEGACY_WORLD_AWARD_NAMES = ['Coroa de Ouro FootRise'];
+
+/** Troca o nome antigo da Bola de Ouro em textos de saves e resumos anteriores (prêmios e manchetes). */
+export function renameLegacyAward(text: string): string {
+  return LEGACY_WORLD_AWARD_NAMES.reduce((t, old) => t.replaceAll(old, WORLD_AWARD_NAME), text);
+}
+
 export interface AwardInput {
   season: string;
   age: number;
@@ -82,7 +91,7 @@ export function computeAwards(i: AwardInput, rng: Rng): Award[] {
   );
   const worldScore = perf + titles + (i.league.strength - 80) * 0.8 + (i.internationalBonus ?? 0);
   if (enoughGames && worldScore >= AWARDS.worldRival + rng.normal(0, AWARDS.rivalNoise)) {
-    awards.push({ kind: 'world', name: 'Coroa de Ouro FootRise', season: i.season });
+    awards.push({ kind: 'world', name: WORLD_AWARD_NAME, season: i.season });
   }
 
   return awards;

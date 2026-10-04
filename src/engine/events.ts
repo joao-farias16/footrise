@@ -55,6 +55,10 @@ export function rollSeasonEvents(career: Career, rng: Rng): EventInstance[] {
   const pool = [...eligible];
   const take = (def: EventDef) => {
     pool.splice(pool.indexOf(def), 1);
+    // Situações contraditórias (ex.: lesão e pré-temporada arrasadora) não dividem a mesma temporada.
+    if (def.conflicts?.length) {
+      for (let i = pool.length - 1; i >= 0; i--) if (pool[i].conflicts?.some((t) => def.conflicts!.includes(t))) pool.splice(i, 1);
+    }
     categories.set(def.category, (categories.get(def.category) ?? 0) + 1);
     chosen.push({ defId: def.id, params: def.params ? def.params(ctx, rng) : {} });
   };
@@ -63,7 +67,7 @@ export function rollSeasonEvents(career: Career, rng: Rng): EventInstance[] {
   const priority = pool.filter((d) => (d.priority?.(ctx) ?? 0) > 0 && !recent.has(d.id));
   for (const def of rng.shuffle(priority)) {
     if (chosen.length >= count) break;
-    if (rng.chance(def.priority!(ctx))) take(def);
+    if (pool.includes(def) && rng.chance(def.priority!(ctx))) take(def);
   }
 
   while (chosen.length < count && pool.length > 0) {
