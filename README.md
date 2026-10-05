@@ -167,12 +167,13 @@ Ao fim de cada temporada o jogo avalia os prêmios individuais: artilheiro da li
 
 A **Bola de Ouro** é o prêmio anual de **melhor jogador do mundo**:
 
-- é decidida pelo **desempenho da temporada** — nota média, gols e assistências (ou jogos sem sofrer gols, para defensores e goleiros), minutos, títulos conquistados e sua importância, força da liga e atuações pela seleção. O OVR entra como contexto, mas uma temporada mediana de um jogador de OVR alto perde para uma temporada extraordinária de um jogador um pouco menos técnico;
-- exige regularidade: é preciso ter sido titular em uma quantidade mínima de jogos;
-- pode ser conquistada **várias vezes**, inclusive em temporadas seguidas, sem limite;
+- premia uma **temporada histórica**, não o acúmulo de pontos: a nota média é o critério principal (e pesa cada vez mais quando é excepcional), seguida dos números lidos conforme a posição (gols e assistências para quem ataca, jogos sem sofrer gols para defensores e goleiros), dos títulos — Copa do Mundo e competição continental dão um grande impulso, mas só contam por inteiro para quem foi protagonista —, das atuações pela seleção e da força da liga. O OVR é apenas apoio: uma temporada mediana de um jogador de OVR alto não vence;
+- não há bônus por posição. Como atacantes e meias decidem jogos com gols e assistências, eles naturalmente dominam o prêmio; defensores vencem ocasionalmente e goleiros só numa temporada realmente histórica;
+- exige regularidade: é preciso ter sido titular em uma quantidade mínima de jogos, e uma temporada com poucos minutos derruba a candidatura;
+- pode ser conquistada **várias vezes**, inclusive em temporadas seguidas, sem limite — mas é rara: temporadas excelentes podem perder para um rival melhor naquele ano;
 - fica registrada na temporada (prêmios e manchetes), no histórico de prêmios da carreira e no resumo final, que mostra quantas Bolas de Ouro o jogador ganhou. Ela também tem o maior peso entre os prêmios individuais na reputação e no legado.
 
-O FootRise não simula os demais jogadores do mundo individualmente: a disputa acontece contra um rival de referência com variação aleatória a cada ano.
+O FootRise não simula os demais jogadores do mundo individualmente: a cada ano, o jogador disputa com um pequeno grupo de candidatos de níveis diferentes — o principal concorrente varia muito de um ano para outro (há anos sem um grande rival e anos com uma temporada histórica de outro jogador) — e precisa superar a melhor temporada entre eles.
 
 ## Final da carreira e legado
 

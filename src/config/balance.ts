@@ -278,7 +278,17 @@ export const AWARDS = {
   minStartsForAwards: 18,
   topScorerNoise: 4,
   leaguePlayerRival: 30,
-  worldRival: 66,
+  /**
+   * Bola de Ouro: os outros candidatos do mundo em cada ano (nível médio da temporada e quanto
+   * ela varia de um ano para outro). O principal concorrente oscila muito — há anos sem um
+   * grande rival e anos em que alguém faz uma temporada histórica. O jogador precisa superar
+   * a melhor temporada entre eles.
+   */
+  worldRivals: [
+    { base: 116, sd: 35 },
+    { base: 95, sd: 12 },
+    { base: 88, sd: 12 },
+  ],
   clubPlayerPerf: 16,
   minTopScorerGoals: 15,
   rivalNoise: 5,
