@@ -11,20 +11,24 @@ import { deriveStyle } from '../../engine/style';
 import { careerTotals } from '../../engine/summary';
 import { useGame } from '../../state/GameContext';
 import type { Career } from '../../types';
-import { Bar, ConfirmButton, Crest, Flag, Meter, ovrClass, Pill, StatTile, TopBar } from '../common';
+import { Banner, Bar, clubColorVars, ConfirmButton, Crest, Flag, Meter, ovrClass, OvrBadge, Pill, StatTile, Tabs, TopBar } from '../common';
 import { NationalPanel, SeasonList, TrophyShelf } from '../CareerWidgets';
 import { SaveStatus } from '../CloudWidgets';
 import { PlayerCard } from '../PlayerCard';
 
+type HubTab = 'career' | 'seasons' | 'national';
+
 export function HubScreen({ career }: { career: Career }) {
   const { act } = useGame();
   const [retirePromptSeason, setRetirePromptSeason] = useState<number | null>(null);
+  const [tab, setTab] = useState<HubTab>('career');
   const club = getClub(career.clubId);
   if (!club) return null;
   const league = getLeague(club.leagueId);
   const parent = getClub(career.parentClubId);
   const ovr = currentOverall(career);
   const pot = potentialOverall(career);
+  const peak = Math.max(career.peakOvr ?? 0, ovr);
   const share = expectedStartShare(ovr, club.strength, career.coachTrust, career.position);
   const totals = careerTotals(career);
   const last = career.seasons[career.seasons.length - 1];
@@ -39,83 +43,88 @@ export function HubScreen({ career }: { career: Career }) {
       <TopBar right={<SaveStatus />} />
       <main className="page">
         <div className="stack">
-          <div className="hub-header">
-            <div className="row" style={{ flexWrap: 'nowrap' }}>
-              <Crest clubId={club.id} size="lg" />
-              <div>
+          <section className="career-hero" style={clubColorVars(club.id)} aria-label="Situação atual">
+            <div className="career-hero-club">
+              <Crest clubId={club.id} size="xl" />
+              <div className="career-hero-text">
                 <div className="eyebrow">Temporada {season}</div>
-                <h1 style={{ fontSize: 'clamp(1.6rem, 5vw, 2.4rem)' }}>{club.name}</h1>
-                <div className="row faint" style={{ gap: 6 }}>
-                  <Flag code={league.country} /> {league.name} · {career.age} anos
+                <h1>{club.name}</h1>
+                <div className="career-hero-meta">
+                  <span className="row row-tight">
+                    <Flag code={league.country} /> {league.name}
+                  </span>
+                  <span>
+                    {career.profile.name} · {career.position} · {career.age} anos
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="row">
-              {career.retireAnnounced && <Pill tone="gold">👋 Última temporada</Pill>}
-              {parent && <Pill tone="blue">↔ Emprestado pelo {parent.name}</Pill>}
-              {career.continentalQualified && <Pill tone="purple">⭐ {CONTINENTAL_CUP[league.continent].name}</Pill>}
+            <div className="career-hero-ratings">
+              <OvrBadge value={ovr} label="OVR atual" size="lg" />
+              <OvrBadge value={pot} label="Potencial" outline />
+              <OvrBadge value={peak} label="OVR máximo" outline />
             </div>
-          </div>
+            {(career.retireAnnounced || parent || career.continentalQualified) && (
+              <div className="career-hero-tags">
+                {career.retireAnnounced && <Pill tone="gold">👋 Última temporada</Pill>}
+                {parent && <Pill tone="blue">↔ Emprestado pelo {parent.name}</Pill>}
+                {career.continentalQualified && <Pill tone="purple">⭐ {CONTINENTAL_CUP[league.continent].name}</Pill>}
+              </div>
+            )}
+          </section>
 
           {justSigned && (
-            <div className="banner banner-gold">
-              <span className="banner-icon" aria-hidden="true">
-                ✍️
-              </span>
-              <span>
-                {justSigned.kind === 'loan' ? 'Empréstimo confirmado!' : 'Reforço anunciado!'} Bem-vindo ao <strong>{club.name}</strong>
-                {justSigned.fee > 0 && ` — negócio de ${formatMoney(justSigned.fee)}`}.
-              </span>
-            </div>
+            <Banner tone="gold" icon="✍️">
+              {justSigned.kind === 'loan' ? 'Empréstimo confirmado!' : 'Reforço anunciado!'} Bem-vindo ao <strong>{club.name}</strong>
+              {justSigned.fee > 0 && ` — negócio de ${formatMoney(justSigned.fee)}`}.
+            </Banner>
           )}
           {canRetire(career) && !career.retireAnnounced && retirePromptSeason !== career.year && (
-            <div className="banner banner-gold">
-              <span className="banner-icon" aria-hidden="true">
-                👋
-              </span>
-              <span style={{ flex: 1 }}>
-                <strong>Você tem {career.age} anos. Deseja se aposentar?</strong>{' '}
+            <Banner
+              tone="gold"
+              icon="👋"
+              actions={
+                <>
+                  <ConfirmButton className="btn btn-sm btn-danger" label="Sim, aposentar" confirmLabel="Confirmar aposentadoria" onConfirm={() => act(retireNow)} />
+                  <button className="btn btn-sm" onClick={() => setRetirePromptSeason(career.year)}>
+                    Não, continuar
+                  </button>
+                </>
+              }
+            >
+              <strong>Você tem {career.age} anos. Deseja se aposentar?</strong>{' '}
+              <span className="muted">
                 {isFinalAllowedSeason(career)
                   ? `Esta é a última temporada possível: aos ${CAREER.maxAge} anos a aposentadoria é obrigatória.`
                   : `Dos ${CAREER.canRetireAge} aos ${CAREER.maxAge - 1} anos a decisão é sua; aos ${CAREER.maxAge}, a aposentadoria é obrigatória.`}
               </span>
-              <span className="row" style={{ gap: 6 }}>
-                <ConfirmButton className="btn btn-sm btn-danger" label="Sim, aposentar" confirmLabel="Confirmar aposentadoria" onConfirm={() => act(retireNow)} />
-                <button className="btn btn-sm" onClick={() => setRetirePromptSeason(career.year)}>
-                  Não, continuar
-                </button>
-              </span>
-            </div>
+            </Banner>
           )}
           {!canRetire(career) && isFinalAllowedSeason(career) && (
-            <div className="banner banner-gold">
-              <span className="banner-icon" aria-hidden="true">
-                ⏳
-              </span>
-              <span>Última temporada possível: aos {CAREER.maxAge} anos a aposentadoria é obrigatória.</span>
-            </div>
+            <Banner tone="gold" icon="⏳">
+              Última temporada possível: aos {CAREER.maxAge} anos a aposentadoria é obrigatória.
+            </Banner>
           )}
           {firstSeason && (
-            <div className="banner banner-green">
-              <span className="banner-icon" aria-hidden="true">
-                🚀
-              </span>
-              <span>Contrato assinado. Antes de cada temporada podem surgir decisões — escolha bem.</span>
-            </div>
+            <Banner tone="green" icon="🚀">
+              Contrato assinado. Antes de cada temporada podem surgir decisões — escolha bem.
+            </Banner>
           )}
 
           <div className="hub-grid">
-            <div className="stack">
-              <PlayerCard
-                name={career.profile.name}
-                nationality={career.profile.nationality}
-                position={career.position}
-                number={currentShirtNumber(career)}
-                ovr={ovr}
-                attributes={career.attributes}
-                style={deriveStyle(career.attributes, career.position)}
-              />
-              <div className="panel panel-tight stack" style={{ gap: 10 }}>
+            <div className="hub-col">
+              <div className="hub-card">
+                <PlayerCard
+                  name={career.profile.name}
+                  nationality={career.profile.nationality}
+                  position={career.position}
+                  number={currentShirtNumber(career)}
+                  ovr={ovr}
+                  attributes={career.attributes}
+                  style={deriveStyle(career.attributes, career.position)}
+                />
+              </div>
+              <section className="panel panel-tight stack stack-sm hub-attrs">
                 <div className="panel-title" style={{ marginBottom: 0 }}>
                   <h3>Atributos</h3>
                   <span className="faint">
@@ -135,61 +144,73 @@ export function HubScreen({ career }: { career: Career }) {
                   </div>
                 ))}
                 <p className="faint">A marca dourada é o potencial de cada atributo.</p>
-              </div>
+              </section>
             </div>
 
-            <div className="stack">
-              <div className="stat-tiles">
+            <div className="hub-col">
+              <div className="stat-tiles hub-tiles">
+                <StatTile accent label="Titularidade" value={`${Math.round(share * 100)}%`} sub="prevista" />
                 <StatTile label="Valor de mercado" value={formatMoney(marketValue(ovr, career.age, career.reputation))} />
                 <StatTile label="Salário" value={formatMoney(career.weeklyWage)} sub="por semana" />
-                <StatTile label="Titularidade" value={`${Math.round(share * 100)}%`} sub="prevista" />
                 <StatTile label="Força do clube" value={club.strength} sub={`Liga ${league.strength}`} />
               </div>
 
-              <div className="panel panel-tight stack" style={{ gap: 10 }}>
+              <section className="panel panel-tight stack stack-sm hub-status">
                 <h3>Situação</h3>
-                <Meter label="Moral" value={career.morale} />
-                <Meter label="Confiança do técnico" value={career.coachTrust} />
-                <Meter label="Reputação" value={career.reputation} color="var(--purple)" />
-              </div>
+                <div className="grid-3">
+                  <Meter label="Moral" value={career.morale} />
+                  <Meter label="Confiança do técnico" value={career.coachTrust} />
+                  <Meter label="Reputação" value={career.reputation} color="var(--purple)" />
+                </div>
+              </section>
 
               {last && last.headlines.length > 0 && (
-                <div className="panel panel-tight stack" style={{ gap: 8 }}>
+                <section className="panel panel-tight panel-flat stack stack-sm hub-news">
                   <h3>Última temporada</h3>
                   {last.headlines.slice(0, 5).map((h, i) => (
                     <div className="headline" key={i}>
                       {h}
                     </div>
                   ))}
-                </div>
+                </section>
               )}
 
-              <div className="panel panel-tight stack">
-                <h3>Carreira</h3>
-                <div className="stat-tiles">
-                  <StatTile label="Jogos" value={totals.apps} />
-                  <StatTile label={isKeeper ? 'Sem sofrer gols' : 'Gols'} value={isKeeper ? totals.cleanSheets : totals.goals} />
-                  <StatTile label="Assistências" value={totals.assists} />
-                  <StatTile label="Seleção" value={career.national.caps} sub={`${career.national.goals} gols`} />
-                </div>
-                <TrophyShelf career={career} />
-              </div>
-
-              <div className="panel panel-tight stack" style={{ gap: 10 }}>
-                <h3>Seleção</h3>
-                <NationalPanel career={career} compact />
-                <div className="faint">
-                  📅 Calendário {season}: {nationalCalendar(career.year + 1, career.profile.nationality).join(' · ')}
-                </div>
-              </div>
-
-              <div className="panel panel-tight">
-                <div className="panel-title">
-                  <h3>Temporadas</h3>
-                  <span className="faint">{career.seasons.length}</span>
-                </div>
-                <SeasonList career={career} />
-              </div>
+              <section className="panel panel-tight hub-tabs" aria-label="Histórico da carreira">
+                <Tabs
+                  label="Histórico da carreira"
+                  value={tab}
+                  onChange={setTab}
+                  tabs={[
+                    { id: 'career', label: 'Carreira' },
+                    { id: 'seasons', label: `Temporadas (${career.seasons.length})` },
+                    { id: 'national', label: 'Seleção' },
+                  ]}
+                >
+                  {tab === 'career' && (
+                    <div className="stack">
+                      <div className="stat-tiles">
+                        <StatTile label="Jogos" value={totals.apps} />
+                        <StatTile label={isKeeper ? 'Sem sofrer gols' : 'Gols'} value={isKeeper ? totals.cleanSheets : totals.goals} />
+                        <StatTile label="Assistências" value={totals.assists} />
+                        <StatTile label="Seleção" value={career.national.caps} sub={`${career.national.goals} gols`} />
+                      </div>
+                      <TrophyShelf career={career} />
+                    </div>
+                  )}
+                  {tab === 'seasons' && <SeasonList career={career} />}
+                  {tab === 'national' && (
+                    <div className="stack stack-sm">
+                      <NationalPanel career={career} compact />
+                      <div className="calendar-line">
+                        <span aria-hidden="true">📅</span>
+                        <span>
+                          Calendário {season}: {nationalCalendar(career.year + 1, career.profile.nationality).join(' · ')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </Tabs>
+              </section>
             </div>
           </div>
 
@@ -212,9 +233,7 @@ export function HubScreen({ career }: { career: Career }) {
             )}
           </div>
           {!canRetire(career) && career.age >= CAREER.canRetireAge - 2 && (
-            <p className="faint" style={{ textAlign: 'center' }}>
-              A aposentadoria fica disponível a partir dos {CAREER.canRetireAge} anos.
-            </p>
+            <p className="faint center">A aposentadoria fica disponível a partir dos {CAREER.canRetireAge} anos.</p>
           )}
         </div>
       </main>

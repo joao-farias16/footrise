@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { getClub } from '../data/clubs';
 import { getCountry } from '../data/countries';
 import { LEGEND_BY_ID } from '../data/legends';
@@ -17,19 +17,19 @@ export function Flag({ code, title }: { code: string; title?: string }) {
 
 export function CountryName({ code }: { code: string }) {
   return (
-    <span className="row" style={{ gap: 6, display: 'inline-flex' }}>
+    <span className="row row-tight" style={{ display: 'inline-flex' }}>
       <Flag code={code} />
       {getCountry(code).name}
     </span>
   );
 }
 
-export function Crest({ clubId, size = 'md' }: { clubId: string | null | undefined; size?: 'sm' | 'md' | 'lg' }) {
+export function Crest({ clubId, size = 'md' }: { clubId: string | null | undefined; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
   const club = getClub(clubId);
   const [a, b] = club?.colors ?? ['#334155', '#e2e8f0'];
   return (
     <span
-      className={`crest ${size === 'sm' ? 'crest-sm' : size === 'lg' ? 'crest-lg' : ''}`}
+      className={`crest ${size === 'md' ? '' : `crest-${size}`}`}
       style={{ background: `linear-gradient(135deg, ${a} 0 55%, ${b} 55% 100%)`, color: '#fff' }}
       aria-hidden="true"
     >
@@ -38,8 +38,16 @@ export function Crest({ clubId, size = 'md' }: { clubId: string | null | undefin
   );
 }
 
+/** Variáveis CSS com as cores do clube (faixas e brilhos de cartões). */
+export function clubColorVars(clubId: string | null | undefined): CSSProperties {
+  const club = getClub(clubId);
+  if (!club) return {};
+  return { '--club-a': club.colors[0], '--club-b': club.colors[1] } as CSSProperties;
+}
+
 function initials(name: string): string {
   const parts = name.replace(/\./g, '').split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
@@ -65,7 +73,15 @@ export function LegendAvatar({ legendId, size = 64 }: { legendId: string; size?:
   );
 }
 
-export type PillTone = 'green' | 'gold' | 'red' | 'blue' | 'purple' | 'neutral';
+export function UserAvatar({ name }: { name: string }) {
+  return (
+    <span className="user-avatar" aria-hidden="true">
+      {initials(name)}
+    </span>
+  );
+}
+
+export type PillTone = 'green' | 'gold' | 'red' | 'blue' | 'purple' | 'volt' | 'neutral';
 
 export function Pill({ tone = 'neutral', children }: { tone?: PillTone; children: ReactNode }) {
   return <span className={`pill ${tone === 'neutral' ? '' : `pill-${tone}`}`}>{children}</span>;
@@ -97,9 +113,9 @@ export function Meter({ label, value, color }: { label: string; value: number; c
   );
 }
 
-export function StatTile({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
+export function StatTile({ label, value, sub, accent = false }: { label: string; value: ReactNode; sub?: ReactNode; accent?: boolean }) {
   return (
-    <div className="stat-tile">
+    <div className={`stat-tile ${accent ? 'stat-tile-accent' : ''}`}>
       <div className="k">{label}</div>
       <div className="v">{value}</div>
       {sub && <div className="s">{sub}</div>}
@@ -107,12 +123,44 @@ export function StatTile({ label, value, sub }: { label: string; value: ReactNod
   );
 }
 
+export type OvrTier = 'elite' | 'high' | 'mid' | 'low';
+
+/** Faixa de um valor de overall/atributo (mesmos cortes de sempre). */
+export function ovrTier(v: number): OvrTier {
+  if (v >= 88) return 'elite';
+  if (v >= 80) return 'high';
+  if (v >= 70) return 'mid';
+  return 'low';
+}
+
 /** Classe de cor para um valor de overall/atributo. */
 export function ovrClass(v: number): string {
-  if (v >= 88) return 'tier-elite';
-  if (v >= 80) return 'tier-high';
-  if (v >= 70) return 'tier-mid';
-  return 'tier-low';
+  return `tier-${ovrTier(v)}`;
+}
+
+/** Selo de OVR: o número mais importante do jogo, com a cor da faixa. */
+export function OvrBadge({
+  value,
+  label = 'OVR',
+  size = 'md',
+  outline = false,
+}: {
+  value: number;
+  label?: string;
+  size?: 'sm' | 'md' | 'lg';
+  outline?: boolean;
+}) {
+  return (
+    <div
+      className={`ovr-badge ${size === 'md' ? '' : `ovr-badge-${size}`} ${outline ? 'ovr-badge-outline' : ''}`}
+      data-tier={ovrTier(value)}
+      role="img"
+      aria-label={`${label}: ${value}`}
+    >
+      <span className="ovr-badge-value">{value}</span>
+      <span className="ovr-badge-label">{label}</span>
+    </div>
+  );
 }
 
 export function ratingClass(r: number): string {
@@ -131,21 +179,135 @@ export function ratingLabel(r: number): string {
   return 'Fraca';
 }
 
-export function Logo({ small = false }: { small?: boolean }) {
+export type BannerTone = 'gold' | 'green' | 'red' | 'blue';
+
+/** Aviso destacado no fluxo da página (contrato assinado, aposentadoria, títulos…). */
+export function Banner({
+  tone = 'gold',
+  icon,
+  children,
+  actions,
+  role,
+}: {
+  tone?: BannerTone;
+  icon?: ReactNode;
+  children: ReactNode;
+  actions?: ReactNode;
+  role?: 'status' | 'alert';
+}) {
   return (
-    <span className={`logo ${small ? 'logo-sm' : ''}`} aria-label="FootRise">
-      <span>Foot</span>
-      <span className="rise">Rise</span>
+    <div className={`banner banner-${tone}`} role={role}>
+      {icon && (
+        <span className="banner-icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      <div className="banner-body">{children}</div>
+      {actions && <div className="banner-actions">{actions}</div>}
+    </div>
+  );
+}
+
+export function EmptyState({ icon, title, children, action }: { icon: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="empty-state">
+      <span className="empty-state-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <strong>{title}</strong>
+      {children && <p>{children}</p>}
+      {action}
+    </div>
+  );
+}
+
+export function Spinner() {
+  return <span className="spinner" aria-hidden="true" />;
+}
+
+/** Cabeçalho padrão de página: sobretítulo, título, subtítulo e um lado opcional. */
+export function PageHead({ eyebrow, title, sub, aside }: { eyebrow: ReactNode; title: ReactNode; sub?: ReactNode; aside?: ReactNode }) {
+  return (
+    <div className="page-head">
+      <div>
+        <div className="eyebrow">{eyebrow}</div>
+        <h1>{title}</h1>
+        {sub && <p className="muted">{sub}</p>}
+      </div>
+      {aside}
+    </div>
+  );
+}
+
+/** Abas acessíveis (setas do teclado trocam de aba). */
+export function Tabs<T extends string>({
+  label,
+  tabs,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  tabs: { id: T; label: ReactNode }[];
+  value: T;
+  onChange: (id: T) => void;
+  children: ReactNode;
+}) {
+  const base = useId();
+  const tabId = (id: T) => `${base}-tab-${id}`;
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const i = tabs.findIndex((t) => t.id === value);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].id;
+    onChange(next);
+    document.getElementById(tabId(next))?.focus();
+  };
+  return (
+    <div className="tabs">
+      <div className="segmented track" role="tablist" aria-label={label} onKeyDown={onKey}>
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={tabId(t.id)}
+            className="seg"
+            aria-selected={t.id === value}
+            aria-controls={`${base}-panel`}
+            tabIndex={t.id === value ? 0 : -1}
+            onClick={() => onChange(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="tab-panel" role="tabpanel" id={`${base}-panel`} aria-labelledby={tabId(value)} key={value}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function Logo({ small = false }: { small?: boolean }) {
+  const gid = `lg-rise-${useId().replace(/:/g, '')}`;
+  return (
+    <span className={`logo ${small ? 'logo-sm' : ''}`} role="img" aria-label="FootRise">
       <svg className="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
         <defs>
-          <linearGradient id="lg-rise" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0" stopColor="#16e08a" />
-            <stop offset="1" stopColor="#ffd166" />
+          <linearGradient id={gid} x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stopColor="#34e39a" />
+            <stop offset="1" stopColor="#d4ff3a" />
           </linearGradient>
         </defs>
-        <path d="M8 52 L28 32 L38 42 L56 18" stroke="url(#lg-rise)" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M42 16 H58 V32" stroke="url(#lg-rise)" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10 4h44l6 6v30c0 10-12 18-28 22C16 58 4 50 4 40V10z" fill="#0c1814" stroke={`url(#${gid})`} strokeWidth="3" />
+        <path d="M16 42 L28 30 L35 37 L48 22" stroke={`url(#${gid})`} strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M38 21 H49 V32" stroke={`url(#${gid})`} strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
+      <span className="logo-word" aria-hidden="true">
+        <span>Foot</span>
+        <span className="rise">Rise</span>
+      </span>
     </span>
   );
 }
@@ -155,13 +317,14 @@ export function TopBar({ right, onBack, backLabel = 'Menu' }: { right?: ReactNod
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <button className="icon-btn" onClick={onBack ?? goHome} aria-label={backLabel}>
-          <span aria-hidden="true">←</span> <span>{backLabel}</span>
+        <button className="icon-btn topbar-back" onClick={onBack ?? goHome} aria-label={backLabel}>
+          <span aria-hidden="true">←</span>
+          <span className="topbar-back-label">{backLabel}</span>
         </button>
-        <Logo small />
-        <div className="row" style={{ justifyContent: 'flex-end', minWidth: 44 }}>
-          {right}
-        </div>
+        <span className="topbar-brand">
+          <Logo small />
+        </span>
+        <div className="topbar-right">{right}</div>
       </div>
     </header>
   );
@@ -186,7 +349,7 @@ export function ConfirmButton({
     return () => clearTimeout(t);
   }, [armed]);
   return (
-    <button className={className} onClick={() => (armed ? onConfirm() : setArmed(true))} aria-live="polite">
+    <button className={`${className} ${armed ? 'is-armed' : ''}`} onClick={() => (armed ? onConfirm() : setArmed(true))} aria-live="polite">
       {armed ? confirmLabel : label}
     </button>
   );

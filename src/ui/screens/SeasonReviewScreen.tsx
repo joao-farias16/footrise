@@ -4,7 +4,7 @@ import { formatMoney } from '../../engine/market';
 import { useGame } from '../../state/GameContext';
 import { getCountry } from '../../data/countries';
 import type { Career, SeasonRecord } from '../../types';
-import { Crest, Flag, ovrClass, Pill, ratingClass, ratingLabel, StatTile, TopBar } from '../common';
+import { Banner, Crest, Flag, ovrClass, Pill, ratingClass, ratingLabel, StatTile, TopBar } from '../common';
 import { trophyIcon } from '../CareerWidgets';
 
 /** Estatísticas que importam para a posição (chutes para atacantes, desarmes para defensores...). */
@@ -103,21 +103,26 @@ export function SeasonReviewScreen({ career }: { career: Career }) {
       <TopBar />
       <main className="page">
         <div className="stack reveal">
-          <div className="review-hero">
-            <Crest clubId={s.clubId} size="lg" />
+          <div className={`review-hero ${big ? 'is-champion' : ''}`}>
+            <Crest clubId={s.clubId} size="xl" />
             <div className="eyebrow">Temporada {s.season} encerrada</div>
             <h1>{big ? (s.trophies.length > 0 ? 'Temporada de campeão!' : 'Temporada histórica!') : s.rating >= 7.2 ? 'Que temporada!' : s.rating >= 6.7 ? 'Temporada sólida' : s.apps === 0 ? 'Um ano perdido' : 'Temporada difícil'}</h1>
             <p className="muted">
               {s.clubName} · {s.age} anos · {pos.label}
             </p>
+            <div className="ovr-change" aria-label={`Overall de ${s.ovrStart} para ${s.ovrEnd}`}>
+              <span className="from">{s.ovrStart}</span>
+              <span className="arrow" aria-hidden="true">
+                →
+              </span>
+              <span className={`to ${ovrClass(s.ovrEnd)}`}>{s.ovrEnd}</span>
+              <Pill tone={diff > 0 ? 'green' : diff < 0 ? 'red' : 'neutral'}>{diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : '= estável'}</Pill>
+            </div>
           </div>
 
           {s.trophies.length > 0 && (
-            <div className="banner banner-gold" role="status">
-              <span className="banner-icon" aria-hidden="true">
-                🏆
-              </span>
-              <div className="row" style={{ gap: 6 }}>
+            <Banner tone="gold" icon="🏆" role="status">
+              <div className="row row-tight">
                 <strong>Campeão!</strong>
                 {s.trophies.map((t, i) => (
                   <Pill tone="gold" key={i}>
@@ -125,27 +130,34 @@ export function SeasonReviewScreen({ career }: { career: Career }) {
                   </Pill>
                 ))}
               </div>
-            </div>
+            </Banner>
           )}
 
           <div className="stat-tiles">
-            <StatTile label="Jogos" value={s.apps} sub={`${s.starts} como titular`} />
-            <StatTile label="Minutos" value={s.minutes.toLocaleString('pt-BR')} />
+            <StatTile accent label="Jogos" value={s.apps} sub={`${s.starts} como titular`} />
             {defensive ? (
-              <StatTile label="Sem sofrer gols" value={s.cleanSheets} sub={pos.group === 'gk' ? 'clean sheets' : `${s.goals} gols`} />
+              <StatTile accent label="Sem sofrer gols" value={s.cleanSheets} sub={pos.group === 'gk' ? 'clean sheets' : `${s.goals} gols`} />
             ) : (
-              <StatTile label="Gols" value={s.goals} sub={`${s.leagueGoals} na liga`} />
+              <StatTile accent label="Gols" value={s.goals} sub={`${s.leagueGoals} na liga`} />
             )}
-            <StatTile label="Assistências" value={s.assists} />
+            <StatTile accent label="Assistências" value={s.assists} />
+            <StatTile
+              accent
+              label="Nota média"
+              value={<span className={ratingClass(s.rating)}>{s.rating > 0 ? s.rating.toFixed(2) : '—'}</span>}
+              sub={ratingLabel(s.rating)}
+            />
+          </div>
+          <div className="stat-tiles stat-tiles-compact">
+            <StatTile label="Minutos" value={s.minutes.toLocaleString('pt-BR')} />
             <DetailTiles s={s} />
-            <StatTile label="Nota média" value={<span className={ratingClass(s.rating)}>{s.rating > 0 ? s.rating.toFixed(2) : '—'}</span>} sub={ratingLabel(s.rating)} />
             <StatTile label="Cartões" value={`${s.yellow}🟨 ${s.red}🟥`} sub={`${s.yellow} amarelos, ${s.red} vermelhos`} />
             <StatTile label="Lesões" value={s.injuries.length} sub={injuredGames > 0 ? `${injuredGames} jogos fora` : 'Ileso'} />
             <StatTile label="Valor de mercado" value={formatMoney(s.marketValue)} />
           </div>
 
           <div className="grid-2">
-            <div className="panel panel-tight stack" style={{ gap: 10 }}>
+            <section className="panel panel-tight stack stack-sm">
               <h3>Competições</h3>
               <div className="comp-list">
                 {s.competitions.map((c, i) => (
@@ -161,17 +173,11 @@ export function SeasonReviewScreen({ career }: { career: Career }) {
               <div className="divider" />
               <h3>Seleção</h3>
               <NationalSeasonPanel s={s} nationality={career.profile.nationality} />
-            </div>
+            </section>
 
-            <div className="panel panel-tight stack" style={{ gap: 10 }}>
+            <section className="panel panel-tight stack stack-sm">
               <h3>Evolução</h3>
-              <div className="ovr-change" aria-label={`Overall de ${s.ovrStart} para ${s.ovrEnd}`}>
-                <span className="from">{s.ovrStart}</span>
-                <span aria-hidden="true">→</span>
-                <span className={`to ${ovrClass(s.ovrEnd)}`}>{s.ovrEnd}</span>
-                <Pill tone={diff > 0 ? 'green' : diff < 0 ? 'red' : 'neutral'}>{diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : '= estável'}</Pill>
-              </div>
-              <div className="row" style={{ gap: 6, justifyContent: 'center' }}>
+              <div className="row row-tight">
                 {attrKeysFor(s.position).map((k) => {
                   const d = s.attrDelta[k] ?? 0;
                   return (
@@ -181,11 +187,11 @@ export function SeasonReviewScreen({ career }: { career: Career }) {
                   );
                 })}
               </div>
-              {s.awards.length > 0 && (
+              {s.awards.length > 0 ? (
                 <>
                   <div className="divider" />
                   <h3>Prêmios</h3>
-                  <div className="row" style={{ gap: 6 }}>
+                  <div className="row row-tight">
                     {s.awards.map((a, i) => (
                       <Pill tone="purple" key={i}>
                         🥇 {a.name}
@@ -193,12 +199,14 @@ export function SeasonReviewScreen({ career }: { career: Career }) {
                     ))}
                   </div>
                 </>
+              ) : (
+                <p className="empty-inline">🥇 Nenhum prêmio individual nesta temporada.</p>
               )}
-            </div>
+            </section>
           </div>
 
           {(s.headlines.length > 0 || s.eventNotes.length > 0) && (
-            <div className="panel panel-tight stack" style={{ gap: 8 }}>
+            <section className="panel panel-tight panel-flat stack stack-sm">
               <h3>Manchetes</h3>
               {s.headlines.map((h, i) => (
                 <div className="headline" key={`h${i}`}>
@@ -218,16 +226,13 @@ export function SeasonReviewScreen({ career }: { career: Career }) {
                     🩹 {inj.label}: {inj.games} jogo{inj.games > 1 ? 's' : ''} fora
                   </div>
                 ))}
-            </div>
+            </section>
           )}
 
           {ending && (
-            <div className="banner banner-gold">
-              <span className="banner-icon" aria-hidden="true">
-                👋
-              </span>
-              <span>{career.forcedRetirementReason ?? 'Esta foi a sua última temporada. Hora de olhar para trás.'}</span>
-            </div>
+            <Banner tone="gold" icon="👋">
+              {career.forcedRetirementReason ?? 'Esta foi a sua última temporada. Hora de olhar para trás.'}
+            </Banner>
           )}
 
           <div className="action-bar">

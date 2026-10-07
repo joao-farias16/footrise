@@ -18,6 +18,7 @@
 - [Prêmios e Bola de Ouro](#prêmios-e-bola-de-ouro)
 - [Final da carreira e legado](#final-da-carreira-e-legado)
 - [Contas, autenticação e salvamento](#contas-autenticação-e-salvamento)
+- [Interface e responsividade](#interface-e-responsividade)
 - [Tecnologias](#tecnologias)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Instalação e execução](#instalação-e-execução)
@@ -70,10 +71,10 @@ Cada temporada é simulada partida a partida, e o resultado é uma história pr�
 - **Aposentadoria** opcional a partir dos 34 anos e obrigatória aos 40.
 - **Legado**: nota de 0 a 100 com detalhamento e classificação — PROMESSA, PROFISSIONAL, DESTAQUE, CRAQUE, LENDÁRIO ou ÍCONE.
 
-### Histórico e interface
+### Histórico
 - **Minhas carreiras**: lista de carreiras encerradas que mostra o **OVR máximo (Pico de OVR)** e a classificação do legado de cada uma, com ordenação por data ou por legado e exclusão.
 - **Resumo da carreira**: temporada a temporada, clubes, troféus, prêmios (com a contagem de Bolas de Ouro), seleção, transferências, números de camisa, ganhos, Pico de OVR, OVR final, atributos finais e o detalhamento do legado.
-- Interface responsiva (celular, tablet e desktop) com opção de reduzir animações.
+- Interface responsiva (celular, tablet, notebook e monitores largos) com opção de reduzir animações. Veja [Interface e responsividade](#interface-e-responsividade).
 
 ## OVR e evolução
 
@@ -191,12 +192,21 @@ O FootRise não simula os demais jogadores do mundo individualmente: a cada ano,
 - **Sincronização:** para usuários autenticados, a carreira ativa é enviada automaticamente para o Cloud Firestore, e as carreiras encerradas salvas ficam no histórico da conta. Ao entrar na conta em outro navegador ou dispositivo, a carreira da nuvem é carregada. Se a cópia local e a da nuvem divergirem, o jogo pergunta qual manter — nada é sobrescrito sem confirmação.
 - **Regras de segurança** (`firestore.rules`): cada usuário só lê e escreve os próprios dados.
 
+## Interface e responsividade
+
+A interface tem identidade visual própria de jogo de carreira — "estádio à noite": fundo escuro com tom de gramado e refletores discretos, **verde-limão (volt)** como cor de marca e das ações principais, e **dourado** reservado para títulos, conquistas e jogadores de elite. A tipografia combina Saira Condensed (títulos e números) com Manrope (texto).
+
+- **Hierarquia:** o painel da carreira abre com um cabeçalho do clube atual e três selos de OVR — **OVR atual**, **Potencial** e **OVR máximo** — seguidos dos números que decidem a próxima temporada (titularidade prevista, valor de mercado, salário, força do clube) e da situação (moral, confiança do técnico, reputação). Histórico, temporadas e seleção ficam em abas. No resumo da temporada e no legado, os números principais aparecem em destaque e os secundários em uma grade mais compacta.
+- **Componentes padronizados** (`src/ui/common.tsx`): botões, pílulas, selo de OVR por faixa de nível, banners de aviso, estatísticas, medidores, abas acessíveis, estados vazios, indicador de carregamento, carta do jogador, tabela de temporadas e diálogos.
+- **Responsividade:** layouts próprios para celular — não uma versão encolhida do desktop. A tabela de temporadas usa *container queries*: vira cartões no celular e tabela completa quando há espaço. No celular, o painel da carreira reorganiza os blocos (primeiro o que decide a próxima temporada), os diálogos viram folhas que sobem da borda inferior, a barra superior mostra o status de salvamento só com ícones (falhas continuam com texto) e a barra de ações fica fixa no rodapé sem cobrir a tela. Testada de 320 px a 1920 px.
+- **Animações** moderadas (entrada de páginas, revelação da carta, troca de lendas no draft, botões) que respeitam a opção "Reduzir animações" e a preferência do sistema operacional.
+
 ## Tecnologias
 
 - [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 - [Vite](https://vite.dev/)
 - [Firebase](https://firebase.google.com/) — Authentication (e-mail/senha) e Cloud Firestore
-- CSS próprio (sem framework de UI)
+- CSS próprio, sem framework de UI: *design tokens* em variáveis CSS e folhas separadas por camada (veja [Estrutura do projeto](#estrutura-do-projeto))
 - [Vitest](https://vitest.dev/) e `@firebase/rules-unit-testing` para os testes
 - Firebase Emulator Suite para testes locais de autenticação e Firestore
 
@@ -212,8 +222,9 @@ src/
   engine/       motor do jogo, sem React: overall, draft, partida, temporada, evolução,
                 mercado, propostas, seleção, prêmios, eventos, legado, resumo e orquestração da carreira
   state/        persistência local, sincronização com a nuvem e contexto React
-  ui/           componentes e telas
-  styles/       estilos globais
+  ui/           componentes compartilhados (common.tsx, carta, widgets de carreira e nuvem) e telas (ui/screens)
+  styles/       global.css importa, nesta ordem: tokens (cores, tipografia, espaçamentos), base
+                (reset, fundo, animações), layout, components, card (carta do jogador) e screens
   types.ts      tipos de domínio
 firestore.rules regras de segurança do Firestore
 firebase.json   configuração das regras e do Emulator Suite
@@ -285,7 +296,9 @@ npm run test:cloud   # regras do Firestore + serviço de nuvem no Firebase Emula
 npm run test:watch   # Vitest em modo watch
 ```
 
-Os testes cobrem overall, draft e reroll, simulação e estatísticas por nível e posição, evolução, Pico de OVR e OVR final, eventos (quantidade por temporada, condições, conflitos e consequências), transferências e economia das propostas (incluindo o mercado de fim de carreira), Bola de Ouro e demais prêmios, seleção, aposentadoria, legado, persistência local (incluindo saves de versões anteriores), sincronização e, no emulador, cadastro, login, perfil, regras de segurança e salvamento na nuvem.
+Os testes cobrem a exibição do OVR máximo nas telas de histórico e legado, overall, draft e reroll, simulação e estatísticas por nível e posição, evolução, Pico de OVR e OVR final, eventos (quantidade por temporada, condições, conflitos e consequências), transferências e economia das propostas (incluindo o mercado de fim de carreira), Bola de Ouro e demais prêmios, seleção, aposentadoria, legado, persistência local (incluindo saves de versões anteriores), sincronização e, no emulador, cadastro, login, perfil, regras de segurança e salvamento na nuvem.
+
+Em máquinas mais lentas, alguns testes longos do motor (simulações de carreira inteira) podem ultrapassar o limite padrão de 5 s do Vitest quando todos os arquivos rodam em paralelo. Nesse caso, rode `npx vitest run --no-file-parallelism`.
 
 ## Desenvolvimento
 
@@ -299,7 +312,7 @@ Ajustes de jogabilidade normalmente ficam restritos a `src/config/balance.ts` e 
 
 ## Status do projeto
 
-O FootRise está em desenvolvimento ativo e já é jogável de ponta a ponta: criação, draft com reroll, carreira completa, eventos de carreira, mercado de transferências com capacidade financeira dos clubes, seleção, prêmios (incluindo a Bola de Ouro), aposentadoria, legado, histórico e salvamento local ou em nuvem estão implementados e cobertos por testes. Não há ranking global nem compartilhamento de carreiras entre usuários.
+O FootRise está em desenvolvimento ativo e já é jogável de ponta a ponta: criação, draft com reroll, carreira completa, eventos de carreira, mercado de transferências com capacidade financeira dos clubes, seleção, prêmios (incluindo a Bola de Ouro), aposentadoria, legado, histórico e salvamento local ou em nuvem estão implementados e cobertos por testes. A interface passou por uma reformulação visual completa, com sistema de design próprio e layouts adaptados do celular ao monitor largo. Não há ranking global nem compartilhamento de carreiras entre usuários.
 
 ## Aviso
 

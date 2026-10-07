@@ -1,7 +1,7 @@
 import { chooseInitialClub, currentOverall } from '../../engine/career';
 import { useGame } from '../../state/GameContext';
 import type { Career } from '../../types';
-import { TopBar } from '../common';
+import { OvrBadge, PageHead, TopBar } from '../common';
 import { OfferCard } from '../OfferCard';
 
 export function ClubChoiceScreen({ career }: { career: Career }) {
@@ -11,10 +11,12 @@ export function ClubChoiceScreen({ career }: { career: Career }) {
       <TopBar />
       <main className="page">
         <div className="stack">
-          <div>
-            <div className="eyebrow">Primeiro contrato · {currentOverall(career)} OVR</div>
-            <h1>Onde começa a sua história?</h1>
-          </div>
+          <PageHead
+            eyebrow="Primeiro contrato"
+            title="Onde começa a sua história?"
+            sub={`${career.offers.length} clubes querem você. Escolha com calma: o primeiro contrato define seus minutos em campo.`}
+            aside={<OvrBadge value={currentOverall(career)} label="OVR atual" />}
+          />
           <div className="tip">
             <span aria-hidden="true">💡</span>
             <span>
@@ -22,7 +24,7 @@ export function ClubChoiceScreen({ career }: { career: Career }) {
               exposição; salário não ganha jogo.
             </span>
           </div>
-          <div className="grid-3">
+          <div className="grid-auto">
             {career.offers.map((o, i) => (
               <OfferCard
                 key={o.id}

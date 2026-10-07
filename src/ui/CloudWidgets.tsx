@@ -4,7 +4,6 @@ import { currentOverall } from '../engine/career';
 import { seasonLabel } from '../engine/season';
 import { useGame } from '../state/GameContext';
 import type { Career } from '../types';
-import { Pill } from './common';
 
 /** Diálogo modal simples, acessível (foco no primeiro botão, Esc fecha quando permitido). */
 export function Modal({ title, children, onClose, actions }: { title: string; children: ReactNode; onClose?: () => void; actions: ReactNode }) {
@@ -19,7 +18,7 @@ export function Modal({ title, children, onClose, actions }: { title: string; ch
   return (
     <div className="modal-backdrop" role="presentation" onClick={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className="modal panel stack" role="dialog" aria-modal="true" aria-label={title} ref={box}>
-        <h2 style={{ fontSize: '1.5rem' }}>{title}</h2>
+        <h2>{title}</h2>
         {children}
         <div className="modal-actions">{actions}</div>
       </div>
@@ -39,29 +38,43 @@ function when(ms: number): string {
   return new Date(ms).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+/** Pílula de status da barra superior: no celular mostra só o ícone (texto fica para leitores de tela). */
+function StatusPill({ tone, icon, text, onClick, title }: { tone: string; icon: string; text: string; onClick?: () => void; title?: string }) {
+  const content = (
+    <>
+      <span aria-hidden="true">{icon}</span>
+      <span className="pill-text">{text}</span>
+    </>
+  );
+  return onClick ? (
+    <button className={`pill pill-${tone}`} onClick={onClick} title={title ?? text}>
+      {content}
+    </button>
+  ) : (
+    // Falhas continuam com texto visível em qualquer tela.
+    <span className={`pill pill-${tone} ${tone === 'red' ? '' : 'pill-compact'}`} title={title ?? text}>
+      {content}
+    </span>
+  );
+}
+
 /** Onde a carreira está salva: neste aparelho e, se houver conta, na nuvem. */
 export function SaveStatus() {
   const { localSave, user, sync, cloudAvailable, showConflict, syncNow } = useGame();
   return (
-    <span className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
+    <>
       {localSave.ok ? (
-        <Pill tone="green">💾 Salvo neste aparelho</Pill>
+        <StatusPill tone="green" icon="💾" text="Salvo neste aparelho" />
       ) : (
-        <Pill tone="red">⚠️ Falha ao salvar neste navegador</Pill>
+        <StatusPill tone="red" icon="⚠️" text="Falha ao salvar neste navegador" />
       )}
-      {cloudAvailable && user && sync.state === 'synced' && <Pill tone="blue">☁️ Sincronizado</Pill>}
-      {cloudAvailable && user && (sync.state === 'saving' || sync.state === 'checking') && <Pill tone="blue">☁️ Sincronizando…</Pill>}
+      {cloudAvailable && user && sync.state === 'synced' && <StatusPill tone="blue" icon="☁️" text="Sincronizado" />}
+      {cloudAvailable && user && (sync.state === 'saving' || sync.state === 'checking') && <StatusPill tone="blue" icon="☁️" text="Sincronizando…" />}
       {cloudAvailable && user && sync.state === 'error' && (
-        <button className="pill pill-red" onClick={syncNow} title={sync.message}>
-          ☁️ Falhou · tentar de novo
-        </button>
+        <StatusPill tone="red" icon="☁️" text="Falhou · tentar de novo" onClick={syncNow} title={sync.message} />
       )}
-      {cloudAvailable && user && sync.state === 'conflict' && (
-        <button className="pill pill-gold" onClick={showConflict}>
-          ⚠️ Escolher versão
-        </button>
-      )}
-    </span>
+      {cloudAvailable && user && sync.state === 'conflict' && <StatusPill tone="gold" icon="⚠️" text="Escolher versão" onClick={showConflict} />}
+    </>
   );
 }
 
@@ -143,8 +156,9 @@ export function AccountButton() {
   const { cloudAvailable, user, goAccount, authReady } = useGame();
   if (!cloudAvailable || !authReady) return null;
   return (
-    <button className="btn btn-sm btn-ghost" onClick={goAccount} aria-label={user ? `Conta: ${user.username}` : 'Entrar'}>
-      {user ? `👤 ${user.username}` : '☁️ Entrar'}
+    <button className="btn btn-sm btn-ghost account-btn" onClick={goAccount} aria-label={user ? `Conta: ${user.username}` : 'Entrar'} title={user?.username}>
+      <span aria-hidden="true">{user ? '👤' : '☁️'}</span>
+      <span>{user ? user.username : 'Entrar'}</span>
     </button>
   );
 }

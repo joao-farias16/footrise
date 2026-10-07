@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGame } from '../../state/GameContext';
-import { Pill, TopBar } from '../common';
+import { Banner, EmptyState, PageHead, Pill, Spinner, TopBar, UserAvatar } from '../common';
 import { SaveStatus } from '../CloudWidgets';
 
 type Tab = 'signin' | 'signup' | 'reset';
@@ -108,17 +108,29 @@ export function AccountScreen() {
       <>
         <TopBar />
         <main className="page page-narrow">
-          <div className="panel stack">
-            <h1>Conta</h1>
-            <p className="muted">O salvamento na nuvem não está disponível nesta versão. Seu progresso continua salvo neste navegador.</p>
-            <button className="btn btn-primary" onClick={goHome}>
-              Voltar
-            </button>
+          <div className="panel auth-wrap">
+            <EmptyState
+              icon="💾"
+              title="Conta indisponível"
+              action={
+                <button className="btn btn-primary" onClick={goHome}>
+                  Voltar
+                </button>
+              }
+            >
+              O salvamento na nuvem não está disponível nesta versão. Seu progresso continua salvo neste navegador.
+            </EmptyState>
           </div>
         </main>
       </>
     );
   }
+
+  const busyLabel = (
+    <>
+      <Spinner /> Aguarde…
+    </>
+  );
 
   if (user) {
     const localOnly = history.filter((h) => h.local && !h.cloud).length;
@@ -126,13 +138,18 @@ export function AccountScreen() {
       <>
         <TopBar right={<SaveStatus />} />
         <main className="page page-narrow">
-          <div className="stack">
-            <div>
-              <div className="eyebrow">Conta conectada</div>
-              <h1>👤 {user.username}</h1>
-              <p className="muted">{user.email}</p>
+          <div className="stack auth-wrap">
+            <div className="row nowrap" style={{ gap: 16 }}>
+              <UserAvatar name={user.username} />
+              <div style={{ minWidth: 0 }}>
+                <div className="eyebrow">Conta conectada</div>
+                <h1 className="ellipsis" style={{ fontSize: 'clamp(1.8rem, 6vw, 2.6rem)' }}>
+                  {user.username}
+                </h1>
+                <p className="muted ellipsis">{user.email}</p>
+              </div>
             </div>
-            <div className="panel stack" style={{ gap: 10 }}>
+            <section className="panel stack stack-sm">
               <h3>Salvamento</h3>
               <p className="muted">
                 A carreira ativa é salva neste aparelho a cada ação e enviada para a sua conta automaticamente. Carreiras encerradas ficam no
@@ -140,6 +157,7 @@ export function AccountScreen() {
               </p>
               <div className="row">
                 {sync.state === 'synced' && <Pill tone="blue">☁️ Tudo sincronizado</Pill>}
+                {(sync.state === 'saving' || sync.state === 'checking') && <Pill tone="blue">☁️ Sincronizando…</Pill>}
                 {sync.state === 'error' && <Pill tone="red">☁️ {sync.message}</Pill>}
                 {sync.state === 'conflict' && <Pill tone="gold">⚠️ Há duas versões da carreira esperando sua escolha</Pill>}
                 <button className="btn btn-sm" onClick={syncNow}>
@@ -147,24 +165,28 @@ export function AccountScreen() {
                 </button>
               </div>
               {localOnly > 0 && (
-                <div className="banner banner-gold">
-                  <span className="banner-icon" aria-hidden="true">
-                    📤
-                  </span>
-                  <span>
-                    {localOnly} carreira{localOnly > 1 ? 's' : ''} salva{localOnly > 1 ? 's' : ''} só neste aparelho.{' '}
+                <Banner
+                  tone="gold"
+                  icon="📤"
+                  actions={
                     <button
                       className="btn btn-sm"
                       disabled={busy}
                       onClick={() => void run(async () => setMessage({ tone: 'green', text: `${await uploadLocalHistory()} carreira(s) enviada(s) para a sua conta.` }))}
                     >
-                      Enviar para a conta
+                      {busy ? busyLabel : 'Enviar para a conta'}
                     </button>
-                  </span>
-                </div>
+                  }
+                >
+                  {localOnly} carreira{localOnly > 1 ? 's' : ''} salva{localOnly > 1 ? 's' : ''} só neste aparelho.
+                </Banner>
               )}
-            </div>
-            {message && <div className={`banner banner-${message.tone}`}>{message.text}</div>}
+            </section>
+            {message && (
+              <Banner tone={message.tone} icon={message.tone === 'green' ? '✓' : '⚠️'} role={message.tone === 'red' ? 'alert' : 'status'}>
+                {message.text}
+              </Banner>
+            )}
             <div className="action-bar">
               <button className="btn btn-primary" onClick={goHome}>
                 Voltar ao menu
@@ -173,9 +195,7 @@ export function AccountScreen() {
                 Sair da conta
               </button>
             </div>
-            <p className="faint" style={{ textAlign: 'center' }}>
-              Ao sair, as carreiras continuam salvas neste aparelho e na sua conta.
-            </p>
+            <p className="faint center">Ao sair, as carreiras continuam salvas neste aparelho e na sua conta.</p>
           </div>
         </main>
       </>
@@ -186,17 +206,17 @@ export function AccountScreen() {
     <>
       <TopBar />
       <main className="page page-narrow">
-        <form className="stack" onSubmit={submit} noValidate>
-          <div>
-            <div className="eyebrow">Salvamento na nuvem</div>
-            <h1>{tab === 'signup' ? 'Criar conta' : tab === 'signin' ? 'Entrar' : 'Recuperar senha'}</h1>
-            <p className="muted">Com uma conta, sua carreira fica salva na nuvem e pode ser continuada em outro aparelho. Sem conta, tudo continua salvo neste navegador.</p>
-          </div>
-          <div className="segmented auth-tabs" role="tablist">
-            <button type="button" className="seg" role="tab" aria-selected={tab === 'signin'} aria-pressed={tab === 'signin'} onClick={() => setTab('signin')}>
+        <form className="stack auth-wrap" onSubmit={submit} noValidate>
+          <PageHead
+            eyebrow="Salvamento na nuvem"
+            title={tab === 'signup' ? 'Criar conta' : tab === 'signin' ? 'Entrar' : 'Recuperar senha'}
+            sub="Com uma conta, sua carreira fica salva na nuvem e pode ser continuada em outro aparelho. Sem conta, tudo continua salvo neste navegador."
+          />
+          <div className="segmented track auth-tabs" role="tablist">
+            <button type="button" className="seg" role="tab" aria-selected={tab === 'signin'} onClick={() => setTab('signin')}>
               Entrar
             </button>
-            <button type="button" className="seg" role="tab" aria-selected={tab === 'signup'} aria-pressed={tab === 'signup'} onClick={() => setTab('signup')}>
+            <button type="button" className="seg" role="tab" aria-selected={tab === 'signup'} onClick={() => setTab('signup')}>
               Criar conta
             </button>
           </div>
@@ -217,9 +237,13 @@ export function AccountScreen() {
             {tab === 'signup' && (
               <Field id="confirm" label="Confirmar senha" type="password" value={confirm} onChange={setConfirm} error={errors.confirm} autoComplete="new-password" />
             )}
-            {message && <div className={`banner banner-${message.tone}`}>{message.text}</div>}
-            <button type="submit" className="btn btn-primary btn-xl btn-block" disabled={busy}>
-              {busy ? 'Aguarde…' : tab === 'signup' ? 'Criar conta' : tab === 'signin' ? 'Entrar' : 'Enviar link'}
+            {message && (
+              <Banner tone={message.tone} icon={message.tone === 'green' ? '✓' : '⚠️'} role={message.tone === 'red' ? 'alert' : 'status'}>
+                {message.text}
+              </Banner>
+            )}
+            <button type="submit" className="btn btn-primary btn-xl btn-block" disabled={busy} aria-busy={busy}>
+              {busy ? busyLabel : tab === 'signup' ? 'Criar conta' : tab === 'signin' ? 'Entrar' : 'Enviar link'}
             </button>
             {tab === 'signin' && (
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTab('reset')}>

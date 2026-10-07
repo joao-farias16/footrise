@@ -4,7 +4,7 @@ import { ATTR_META, POSITIONS, attrsByImportance } from '../../config/positions'
 import { SELECTABLE_COUNTRIES } from '../../data/countries';
 import { useGame } from '../../state/GameContext';
 import type { DraftMode, Foot, PositionId } from '../../types';
-import { Flag, TopBar } from '../common';
+import { Banner, Flag, PageHead, TopBar } from '../common';
 
 const PITCH: { id: PositionId; area: string }[] = [
   { id: 'PE', area: 'pe' },
@@ -49,106 +49,112 @@ export function CreateScreen() {
   return (
     <>
       <TopBar />
-      <main className="page page-narrow">
-        <form className="stack" onSubmit={submit} noValidate>
-          <div>
-            <div className="eyebrow">Nova carreira</div>
-            <h1>Crie seu jogador</h1>
-          </div>
+      <main className="page page-mid">
+        <form className="stack stack-lg" onSubmit={submit} noValidate>
+          <PageHead eyebrow="Nova carreira" title="Crie seu jogador" sub="Quem é você, onde joga e como vai montar seu talento no draft de lendas." />
 
-          <div className="panel stack">
-            <div className="field">
-              <label htmlFor="name">Nome</label>
-              <input
-                id="name"
-                className="input"
-                value={name}
-                maxLength={30}
-                autoComplete="off"
-                placeholder="Ex.: João Farias"
-                onChange={(e) => setName(e.target.value)}
-                aria-invalid={touched && !!nameError}
-                aria-describedby="name-err"
-              />
-              {touched && nameError && (
-                <span id="name-err" className="error-text">
-                  {nameError}
+          <div className="create-grid">
+            <section className="panel stack" aria-labelledby="step-1">
+              <div className="step-head">
+                <span className="step-num" aria-hidden="true">
+                  1
                 </span>
-              )}
-            </div>
-
-            <div className="grid-2">
-              <div className="field">
-                <label htmlFor="nat">Nacionalidade</label>
-                <div className="row" style={{ flexWrap: 'nowrap' }}>
-                  <span style={{ fontSize: '1.6rem' }}>
-                    <Flag code={nationality} />
-                  </span>
-                  <select id="nat" className="select" value={nationality} onChange={(e) => setNationality(e.target.value)}>
-                    {SELECTABLE_COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <h3 id="step-1">Identidade</h3>
               </div>
               <div className="field">
-                <label htmlFor="num">Número da camisa</label>
+                <label htmlFor="name">Nome</label>
                 <input
-                  id="num"
+                  id="name"
                   className="input"
-                  inputMode="numeric"
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                  aria-invalid={touched && !!numberError}
+                  value={name}
+                  maxLength={30}
+                  autoComplete="off"
+                  placeholder="Ex.: João Farias"
+                  onChange={(e) => setName(e.target.value)}
+                  aria-invalid={touched && !!nameError}
+                  aria-describedby="name-err"
                 />
-                <div className="segmented" aria-label="Números rápidos">
-                  {QUICK_NUMBERS.map((n) => (
-                    <button type="button" key={n} className="seg" aria-pressed={num === n} onClick={() => setNumber(String(n))} style={{ minWidth: 40, minHeight: 40 }}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                {touched && numberError && <span className="error-text">{numberError}</span>}
+                {touched && nameError && (
+                  <span id="name-err" className="error-text">
+                    {nameError}
+                  </span>
+                )}
               </div>
-            </div>
 
-            <div className="field">
-              <span className="field-label" id="age-label">
-                Idade inicial
-              </span>
-              <div className="segmented" role="radiogroup" aria-labelledby="age-label">
-                {AGES.map((a) => (
-                  <button type="button" role="radio" key={a} className="seg" aria-checked={age === a} onClick={() => setAge(a)}>
-                    {a}
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="nat">Nacionalidade</label>
+                  <div className="row nowrap">
+                    <span className="flag-lg">
+                      <Flag code={nationality} />
+                    </span>
+                    <select id="nat" className="select" value={nationality} onChange={(e) => setNationality(e.target.value)}>
+                      {SELECTABLE_COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="num">Número da camisa</label>
+                  <input
+                    id="num"
+                    className="input"
+                    inputMode="numeric"
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                    aria-invalid={touched && !!numberError}
+                  />
+                </div>
+              </div>
+              <div className="segmented quick-numbers" aria-label="Números rápidos">
+                {QUICK_NUMBERS.map((n) => (
+                  <button type="button" key={n} className="seg" aria-pressed={num === n} onClick={() => setNumber(String(n))}>
+                    {n}
                   </button>
                 ))}
               </div>
-              <span className="faint">Mais jovem = mais tempo para evoluir, mas começa mais cru.</span>
-            </div>
+              {touched && numberError && <span className="error-text">{numberError}</span>}
 
-            <div className="field">
-              <span className="field-label" id="foot-label">
-                Pé dominante
-              </span>
-              <div className="segmented" role="radiogroup" aria-labelledby="foot-label">
-                <button type="button" role="radio" className="seg" aria-checked={foot === 'D'} onClick={() => setFoot('D')}>
-                  Direito
-                </button>
-                <button type="button" role="radio" className="seg" aria-checked={foot === 'E'} onClick={() => setFoot('E')}>
-                  Esquerdo
-                </button>
+              <div className="field">
+                <span className="field-label" id="age-label">
+                  Idade inicial
+                </span>
+                <div className="segmented age-seg" role="radiogroup" aria-labelledby="age-label">
+                  {AGES.map((a) => (
+                    <button type="button" role="radio" key={a} className="seg" aria-checked={age === a} onClick={() => setAge(a)}>
+                      {a}
+                    </button>
+                  ))}
+                </div>
+                <span className="faint">Mais jovem = mais tempo para evoluir, mas começa mais cru.</span>
               </div>
-            </div>
-          </div>
 
-          <div className="panel stack">
-            <div className="field">
-              <span className="field-label" id="pos-label">
-                Posição
-              </span>
-              <div className="pitch" role="radiogroup" aria-labelledby="pos-label">
+              <div className="field">
+                <span className="field-label" id="foot-label">
+                  Pé dominante
+                </span>
+                <div className="segmented" role="radiogroup" aria-labelledby="foot-label">
+                  <button type="button" role="radio" className="seg" aria-checked={foot === 'D'} onClick={() => setFoot('D')}>
+                    Direito
+                  </button>
+                  <button type="button" role="radio" className="seg" aria-checked={foot === 'E'} onClick={() => setFoot('E')}>
+                    Esquerdo
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="panel stack" aria-labelledby="step-2">
+              <div className="step-head">
+                <span className="step-num" aria-hidden="true">
+                  2
+                </span>
+                <h3 id="step-2">Posição</h3>
+              </div>
+              <div className="pitch" role="radiogroup" aria-label="Posição">
                 {PITCH.map((p) => (
                   <button
                     type="button"
@@ -164,40 +170,45 @@ export function CreateScreen() {
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="tip">
-              <span aria-hidden="true">💡</span>
-              <span>
-                <strong>{POSITIONS[position].label}:</strong> o overall valoriza principalmente{' '}
-                {priorities.map((k) => ATTR_META[k].label.toLowerCase()).join(', ')}. A posição muda o que vale a pena pegar no draft.
-              </span>
-            </div>
-          </div>
+              <div className="tip">
+                <span aria-hidden="true">💡</span>
+                <span>
+                  <strong>{POSITIONS[position].label}:</strong> o overall valoriza principalmente{' '}
+                  {priorities.map((k) => ATTR_META[k].label.toLowerCase()).join(', ')}. A posição muda o que vale a pena pegar no draft.
+                </span>
+              </div>
+            </section>
 
-          <div className="panel stack">
-            <span className="field-label" id="mode-label">
-              Modo de draft
-            </span>
-            <div className="grid-2" role="radiogroup" aria-labelledby="mode-label">
-              <button type="button" role="radio" className="mode-card" aria-checked={mode === 'analyst'} onClick={() => setMode('analyst')}>
-                <strong>📊 ANALISTA</strong>
-                <span className="muted">Veja todos os números das lendas e o impacto de cada escolha no seu potencial.</span>
-              </button>
-              <button type="button" role="radio" className="mode-card" aria-checked={mode === 'instinct'} onClick={() => setMode('instinct')}>
-                <strong>🧠 INSTINTO</strong>
-                <span className="muted">Números escondidos. Escolha pelo que você sabe de futebol. Tudo é revelado na carta.</span>
-              </button>
-            </div>
+            <section className="panel stack create-wide" aria-labelledby="step-3">
+              <div className="step-head">
+                <span className="step-num" aria-hidden="true">
+                  3
+                </span>
+                <h3 id="step-3">Modo de draft</h3>
+              </div>
+              <div className="grid-2" role="radiogroup" aria-labelledby="step-3">
+                <button type="button" role="radio" className="mode-card" aria-checked={mode === 'analyst'} onClick={() => setMode('analyst')}>
+                  <strong>📊 ANALISTA</strong>
+                  <span className="muted">Veja todos os números das lendas e o impacto de cada escolha no seu potencial.</span>
+                </button>
+                <button type="button" role="radio" className="mode-card" aria-checked={mode === 'instinct'} onClick={() => setMode('instinct')}>
+                  <strong>🧠 INSTINTO</strong>
+                  <span className="muted">Números escondidos. Escolha pelo que você sabe de futebol. Tudo é revelado na carta.</span>
+                </button>
+              </div>
+            </section>
           </div>
 
           {savedCareer && (
-            <p className="faint" style={{ textAlign: 'center' }}>
-              ⚠️ Ao começar, a carreira em andamento de {savedCareer.profile.name} será descartada.
-            </p>
+            <Banner tone="red" icon="⚠️">
+              Ao começar, a carreira em andamento de <strong>{savedCareer.profile.name}</strong> será descartada.
+            </Banner>
           )}
-          <button type="submit" className="btn btn-primary btn-xl btn-block">
-            Ir para o draft →
-          </button>
+          <div className="action-bar">
+            <button type="submit" className="btn btn-primary btn-xl">
+              Ir para o draft →
+            </button>
+          </div>
         </form>
       </main>
     </>

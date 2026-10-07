@@ -24,31 +24,33 @@ export interface PlayerCardProps {
 export function PlayerCard({ name, nationality, position, number, ovr, ovrLabel = 'OVR', attributes, style, reveal }: PlayerCardProps) {
   const keys: AttrKey[] = attrKeysFor(position);
   return (
-    <div className={`fr-card ${cardTierClass(ovr)} ${reveal ? 'card-reveal' : ''}`} aria-label={`Carta de ${name}: ${ovr} ${ovrLabel}`}>
-      <div className="fr-card-top">
-        <div>
-          <div className="fr-card-ovr">{ovr}</div>
-          <div className="fr-card-label">{ovrLabel}</div>
-          <div className="fr-card-pos">{position}</div>
-          <div style={{ fontSize: '1.6rem', marginTop: 4 }}>
-            <Flag code={nationality} />
-          </div>
-        </div>
-        <div className="fr-card-brand">FOOTRISE</div>
-      </div>
-      <div className="fr-card-number" aria-hidden="true">
-        {number}
-      </div>
-      <div className="fr-card-body" style={{ marginTop: 'auto' }}>
-        <div className="fr-card-name">{name}</div>
-        <div className="fr-card-style">{style}</div>
-        <div className="fr-card-attrs">
-          {keys.map((k) => (
-            <div className="fr-card-attr" key={k}>
-              <b>{attributes[k] ?? '—'}</b>
-              <span>{ATTR_META[k].short}</span>
+    <div className={`fr-card-wrap ${reveal ? 'card-reveal' : ''}`}>
+      <div className={`fr-card ${cardTierClass(ovr)}`} aria-label={`Carta de ${name}: ${ovr} ${ovrLabel}`}>
+        <div className="fr-card-top">
+          <div>
+            <div className="fr-card-ovr">{ovr}</div>
+            <div className="fr-card-label">{ovrLabel}</div>
+            <div className="fr-card-pos">{position}</div>
+            <div className="fr-card-flag">
+              <Flag code={nationality} />
             </div>
-          ))}
+          </div>
+          <div className="fr-card-brand">FOOTRISE</div>
+        </div>
+        <div className="fr-card-number" aria-hidden="true">
+          {number}
+        </div>
+        <div className="fr-card-body">
+          <div className="fr-card-name">{name}</div>
+          <div className="fr-card-style">{style}</div>
+          <div className="fr-card-attrs">
+            {keys.map((k) => (
+              <div className="fr-card-attr" key={k}>
+                <b>{attributes[k] ?? '—'}</b>
+                <span>{ATTR_META[k].short}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

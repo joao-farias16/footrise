@@ -1,0 +1,258 @@
+/* ==========================================================================
+   Layout: app, páginas, barra superior, grids e barra de ações
+   ========================================================================== */
+
+.app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 22px var(--gutter) 56px;
+  flex: 1;
+  animation: page-in 0.35s var(--ease-out) both;
+}
+
+.page-narrow {
+  max-width: 780px;
+}
+
+.page-mid {
+  max-width: 1040px;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.page-head > :first-child {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 600px) {
+  .page-head > .segmented.track {
+    width: 100%;
+  }
+}
+
+/* ---------- Barra superior ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-top: env(safe-area-inset-top);
+  background: rgba(5, 11, 9, 0.8);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 255, 58, 0.45) 50%, transparent);
+  pointer-events: none;
+}
+
+.topbar-inner {
+  width: 100%;
+  max-width: var(--page-max);
+  min-height: var(--topbar-h);
+  margin: 0 auto;
+  padding: 8px var(--gutter);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-inner > :first-child {
+  justify-self: start;
+}
+
+.topbar-brand {
+  justify-self: center;
+  display: inline-flex;
+}
+
+.topbar-right {
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.topbar-back {
+  white-space: nowrap;
+}
+
+/* Celular: o botão de voltar vira só a seta, a marca vai para a esquerda e o
+   status (salvamento, conta) ocupa o resto da linha sem empurrar a logo. */
+@media (max-width: 600px) {
+  .topbar-inner {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 10px;
+  }
+  .topbar-brand {
+    justify-self: start;
+  }
+  .topbar-back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+/* ---------- Pilhas, linhas e grids ---------- */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stack-lg {
+  gap: 24px;
+}
+
+.stack-sm {
+  gap: 10px;
+}
+
+.stack-xs {
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.row-tight {
+  gap: 6px;
+}
+
+.nowrap {
+  flex-wrap: nowrap;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.grid-2,
+.grid-3 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Itens de grid não crescem além da coluna por causa de conteúdo largo. */
+.grid-2 > *,
+.grid-3 > *,
+.grid-auto > * {
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Cartões de clube e similares: quantas colunas couberem, nunca menos de ~290px. */
+.grid-auto {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr));
+}
+
+/* ---------- Barra de ações fixa ---------- */
+
+.action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 25;
+  margin: 4px calc(-1 * var(--gutter)) 0;
+  padding: 16px var(--gutter) calc(14px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(5, 11, 9, 0), rgba(5, 11, 9, 0.88) 32%, rgba(5, 11, 9, 0.96));
+}
+
+.action-bar > * {
+  flex: 1 1 200px;
+}
+
+.action-bar > .btn-xl {
+  flex: 2 1 300px;
+}
+
+.action-bar > .pill {
+  flex: 0 1 auto;
+  justify-content: center;
+}
+
+/* Celular: a barra fixa não pode cobrir meia tela. A ação principal ocupa a linha
+   inteira e as secundárias dividem a linha de baixo. */
+@media (max-width: 600px) {
+  .action-bar {
+    gap: 8px;
+    padding-top: 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .action-bar > * {
+    flex: 1 1 120px;
+  }
+  .action-bar > :first-child {
+    flex-basis: 100%;
+  }
+  .action-bar .btn-xl {
+    min-height: 52px;
+    font-size: 1.18rem;
+    padding: 10px 16px;
+  }
+  .action-bar .btn:not(.btn-xl) {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 0.92rem;
+  }
+}

@@ -1,0 +1,384 @@
+/* ==========================================================================
+   Base: reset, fundo, tipografia, utilitários e animações
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Palavras longas (nomes de clubes e jogadores) quebram em vez de vazar da tela. */
+  overflow-wrap: break-word;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Estádio à noite: refletores, faixas de gramado e o círculo central bem discreto. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(900px 520px at 88% -10%, rgba(212, 255, 58, 0.09), transparent 62%),
+    radial-gradient(760px 520px at 6% -12%, rgba(82, 199, 255, 0.06), transparent 60%),
+    radial-gradient(900px 640px at 50% 118%, rgba(52, 227, 154, 0.08), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 96px, transparent 96px 192px),
+    linear-gradient(180deg, #071411 0%, var(--bg) 60%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 199px, rgba(255, 255, 255, 0.028) 200px 202px, transparent 203px),
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 255, 255, 0.022) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 30%, transparent 75%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--volt);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(212, 255, 58, 0.35);
+  color: #fff;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Tipografia ---------- */
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+}
+
+h1 {
+  font-size: clamp(2rem, 1.4rem + 3vw, 3.2rem);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 1.2rem + 1.6vw, 2.1rem);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* Marca de seção: a barrinha volt antes de cada título de bloco. */
+h3::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 0.9em;
+  margin-right: 10px;
+  vertical-align: -0.08em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--volt), var(--green));
+}
+
+p {
+  margin: 0;
+}
+
+strong,
+b {
+  font-weight: 800;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--volt);
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.faint {
+  color: var(--text-faint);
+  font-size: 0.88rem;
+}
+
+.center {
+  text-align: center;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ---------- Escala de cores por nível (OVR, atributos, notas) ---------- */
+
+.tier-elite {
+  color: var(--gold);
+}
+
+.tier-high {
+  color: var(--green);
+}
+
+.tier-mid {
+  color: var(--lime-mid);
+}
+
+.tier-low {
+  color: var(--orange);
+}
+
+/* ---------- Animações ---------- */
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) rotate(-1.2deg) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes card-reveal {
+  0% {
+    opacity: 0;
+    transform: perspective(900px) rotateY(80deg) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(-8deg) scale(1.03);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes shine {
+  0%,
+  55% {
+    transform: translateX(-60%);
+  }
+  100% {
+    transform: translateX(60%);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 255, 58, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(212, 255, 58, 0);
+  }
+}
+
+@keyframes slot-flash {
+  0% {
+    background: rgba(212, 255, 58, 0.4);
+    transform: scale(1.03);
+  }
+  100% {
+    background: rgba(212, 255, 58, 0.06);
+    transform: none;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.reveal > * {
+  animation: page-in 0.45s var(--ease-out) both;
+}
+
+.reveal > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+.reveal > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.reveal > *:nth-child(4) {
+  animation-delay: 0.18s;
+}
+.reveal > *:nth-child(5) {
+  animation-delay: 0.24s;
+}
+.reveal > *:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.reveal > *:nth-child(n + 7) {
+  animation-delay: 0.36s;
+}
+
+/* Preferência do jogo ("Reduzir animações") e do sistema operacional. */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

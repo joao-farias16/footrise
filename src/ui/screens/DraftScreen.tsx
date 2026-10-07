@@ -6,7 +6,7 @@ import { legendName, legendValue, optionGain, projectedOverall } from '../../eng
 import { weightTier } from '../../engine/overall';
 import { useGame } from '../../state/GameContext';
 import type { AttrKey, Career, DraftOption } from '../../types';
-import { Flag, LegendAvatar, ovrClass, Pill, TopBar } from '../common';
+import { Flag, LegendAvatar, OvrBadge, PageHead, Pill, TopBar } from '../common';
 
 const PICK_DELAY_MS = 480;
 
@@ -65,30 +65,31 @@ export function DraftScreen({ career }: { career: Career }) {
 
   return (
     <>
-      <TopBar
-        right={
-          <Pill tone={instinct ? 'purple' : 'blue'}>{instinct ? '🧠 Instinto' : '📊 Analista'}</Pill>
-        }
-      />
+      <TopBar />
       <main className="page">
         <div className="stack">
-          <div className="row between">
-            <div>
-              <div className="eyebrow">Draft de lendas</div>
-              <h1>
+          <PageHead
+            eyebrow="Draft de lendas"
+            title={
+              <>
                 Rodada {draft.round}
                 <span className="muted" style={{ fontSize: '0.6em' }}>
                   {' '}
                   / {draft.totalRounds}
                 </span>
-              </h1>
-            </div>
-            <div className="round-dots" aria-label={`Rodada ${draft.round} de ${draft.totalRounds}`}>
-              {Array.from({ length: draft.totalRounds }, (_, i) => (
-                <span key={i} className={i + 1 < draft.round ? 'done' : i + 1 === draft.round ? 'now' : ''} />
-              ))}
-            </div>
-          </div>
+              </>
+            }
+            aside={
+              <div className="draft-head-side">
+                <Pill tone={instinct ? 'purple' : 'blue'}>{instinct ? '🧠 Modo instinto' : '📊 Modo analista'}</Pill>
+                <div className="round-track" aria-label={`Rodada ${draft.round} de ${draft.totalRounds}`}>
+                  {Array.from({ length: draft.totalRounds }, (_, i) => (
+                    <span key={i} className={i + 1 < draft.round ? 'done' : i + 1 === draft.round ? 'now' : ''} />
+                  ))}
+                </div>
+              </div>
+            }
+          />
 
           <div className="draft-layout">
             <aside className="panel draft-build" aria-label="Seu jogador">
@@ -96,14 +97,7 @@ export function DraftScreen({ career }: { career: Career }) {
                 <h3>
                   {profile.name} <span className="muted">· {position}</span>
                 </h3>
-                {!instinct && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div className={`display-num ${ovrClass(projected)}`} style={{ fontSize: '2rem' }}>
-                      {Math.round(projected)}
-                    </div>
-                    <div className="weight-tag">potencial</div>
-                  </div>
-                )}
+                {!instinct && <OvrBadge value={Math.round(projected)} label="Potencial" size="sm" />}
               </div>
               <div className="slot-list">
                 {keys.map((k) => {
@@ -156,7 +150,7 @@ export function DraftScreen({ career }: { career: Career }) {
                         <LegendAvatar legendId={legend.id} />
                         <div style={{ minWidth: 0 }}>
                           <div className="legend-name">{legend.name}</div>
-                          <div className="row faint" style={{ gap: 6, marginTop: 4 }}>
+                          <div className="row row-tight faint" style={{ marginTop: 4 }}>
                             <Flag code={legend.country} /> {legend.position} · {legend.era}
                           </div>
                           <div className="faint" style={{ fontStyle: 'italic' }}>
@@ -173,7 +167,7 @@ export function DraftScreen({ career }: { career: Career }) {
                         ))}
                       </div>
                       {!instinct && (
-                        <div className="row" style={{ gap: 6 }}>
+                        <div className="row row-tight">
                           <Pill tone={gain >= 2 ? 'green' : gain > 0 ? 'blue' : 'red'}>{gainText(gain)}</Pill>
                           {current ? (
                             <Pill tone={option.value > current.value ? 'neutral' : 'red'}>
@@ -206,7 +200,7 @@ export function DraftScreen({ career }: { career: Career }) {
         </div>
       </main>
       {toast && (
-        <div className="toast" role="status">
+        <div className="toast toast-pick" role="status">
           {toast}
         </div>
       )}

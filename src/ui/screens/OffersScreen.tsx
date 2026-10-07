@@ -4,7 +4,7 @@ import { expectedStartShare, formatMoney } from '../../engine/market';
 import { seasonLabel } from '../../engine/season';
 import { useGame } from '../../state/GameContext';
 import type { Career } from '../../types';
-import { TopBar } from '../common';
+import { Banner, clubColorVars, OvrBadge, PageHead, Pill, TopBar } from '../common';
 import { ClubFacts, ClubHeader, OfferCard } from '../OfferCard';
 
 export function OffersScreen({ career }: { career: Career }) {
@@ -20,29 +20,22 @@ export function OffersScreen({ career }: { career: Career }) {
       <TopBar />
       <main className="page">
         <div className="stack">
-          <div>
-            <div className="eyebrow">Janela de transferências · {seasonLabel(career.year)}</div>
-            <h1>{hasBig ? 'Gigantes batendo à porta' : 'O mercado se mexeu'}</h1>
-            <p className="muted">
-              {career.offers.length} proposta{career.offers.length > 1 ? 's' : ''} na mesa. {ovr} OVR · {career.age} anos.
-            </p>
-          </div>
+          <PageHead
+            eyebrow={`Janela de transferências · ${seasonLabel(career.year)}`}
+            title={hasBig ? 'Gigantes batendo à porta' : 'O mercado se mexeu'}
+            sub={`${career.offers.length} proposta${career.offers.length > 1 ? 's' : ''} na mesa · ${career.age} anos.`}
+            aside={<OvrBadge value={ovr} label="OVR atual" />}
+          />
           {returnedFromLoan && (
-            <div className="banner banner-green">
-              <span className="banner-icon" aria-hidden="true">
-                ↩
-              </span>
-              <span>Fim do empréstimo: você voltou ao {club?.name}.</span>
-            </div>
+            <Banner tone="green" icon="↩">
+              Fim do empréstimo: você voltou ao {club?.name}.
+            </Banner>
           )}
-          <div className="grid-3">
+          <div className="grid-auto">
             {club && (
-              <article
-                className="club-card stay"
-                style={{ ['--club-a' as string]: club.colors[0], ['--club-b' as string]: club.colors[1] }}
-              >
-                <div className="row">
-                  <span className="pill">🏠 Seu clube atual</span>
+              <article className="club-card stay" style={clubColorVars(club.id)}>
+                <div className="club-card-tags">
+                  <Pill>🏠 Seu clube atual</Pill>
                 </div>
                 <ClubHeader clubId={club.id} />
                 <p className="muted">Continuidade: você conhece o elenco e a relação com o treinador é mantida.</p>

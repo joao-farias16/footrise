@@ -5,8 +5,8 @@ import { buildCareerSummary } from '../../engine/careerSummary';
 import { formatMoney } from '../../engine/market';
 import { useGame, type SaveCareerResult } from '../../state/GameContext';
 import type { Career, CareerSummary, TrophyKind } from '../../types';
-import { Bar, Crest, Flag, ovrClass, Pill, ratingClass, StatTile, TopBar } from '../common';
-import { trophyIcon } from '../CareerWidgets';
+import { Banner, Bar, Crest, Flag, ovrClass, Pill, ratingClass, Spinner, StatTile, TopBar } from '../common';
+import { SeasonTable, trophyIcon, TrophyChip } from '../CareerWidgets';
 import { Modal } from '../CloudWidgets';
 import { PlayerCard } from '../PlayerCard';
 
@@ -51,11 +51,13 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
   return (
     <>
       <div className="stat-tiles">
-        <StatTile label="Jogos" value={s.totals.apps.toLocaleString('pt-BR')} sub={`${s.totals.starts.toLocaleString('pt-BR')} como titular`} />
-        <StatTile label={isKeeper ? 'Sem sofrer gols' : 'Gols'} value={(isKeeper ? s.totals.cleanSheets : s.totals.goals).toLocaleString('pt-BR')} />
-        <StatTile label="Assistências" value={s.totals.assists.toLocaleString('pt-BR')} />
+        <StatTile accent label="Jogos" value={s.totals.apps.toLocaleString('pt-BR')} sub={`${s.totals.starts.toLocaleString('pt-BR')} como titular`} />
+        <StatTile accent label={isKeeper ? 'Sem sofrer gols' : 'Gols'} value={(isKeeper ? s.totals.cleanSheets : s.totals.goals).toLocaleString('pt-BR')} />
+        <StatTile accent label="Assistências" value={s.totals.assists.toLocaleString('pt-BR')} />
+        <StatTile accent label="Títulos" value={s.trophies.length} sub={big.length > 0 ? `${big.reduce((t, g) => t + g.years.length, 0)} grandes` : undefined} />
+      </div>
+      <div className="stat-tiles stat-tiles-compact">
         <StatTile label="Nota média" value={<span className={ratingClass(s.totals.avgRating)}>{s.totals.avgRating > 0 ? s.totals.avgRating.toFixed(2) : '—'}</span>} sub="ponderada pelos jogos" />
-        <StatTile label="Títulos" value={s.trophies.length} sub={big.length > 0 ? `${big.reduce((t, g) => t + g.years.length, 0)} grandes` : undefined} />
         <StatTile label="Prêmios" value={s.awards.length} sub={worldAwards > 0 ? `${worldAwards}× Bola de Ouro` : undefined} />
         <StatTile label="Pico de OVR" value={<span className={ovrClass(s.evolution.peakOvr)}>{s.evolution.peakOvr}</span>} sub={s.evolution.peakOvrSeason ?? undefined} />
         <StatTile label="Maior valor" value={formatMoney(s.evolution.peakValue)} />
@@ -66,36 +68,32 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
       </div>
 
       {big.length > 0 && (
-        <div className="panel panel-tight stack" style={{ gap: 10 }}>
+        <section className="panel panel-tight stack stack-sm">
           <h3>Maiores conquistas</h3>
           <div className="trophy-shelf">
             {big.map((t) => (
-              <div className="trophy" key={`${t.name}|${t.team}`}>
-                <span aria-hidden="true">{trophyIcon(t.kind)}</span>
-                <span className="count">{t.years.length}×</span>
-                <span className="name">{t.name}</span>
-              </div>
+              <TrophyChip key={`${t.name}|${t.team}`} kind={t.kind} count={t.years.length} name={t.name} />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       <div className="grid-2">
-        <div className="panel panel-tight stack" style={{ gap: 10 }}>
+        <section className="panel panel-tight stack stack-sm">
           <h3>Como o legado foi calculado</h3>
           <div className="breakdown">
             {s.legacy.breakdown.map((b) => (
               <div className="breakdown-row" key={b.key}>
                 <span>{b.label}</span>
-                <Bar value={b.points} max={b.max} color="linear-gradient(90deg, var(--green), var(--gold))" />
+                <Bar value={b.points} max={b.max} color="linear-gradient(90deg, var(--green), var(--volt))" />
                 <span className="faint" style={{ textAlign: 'right' }}>
                   {b.points.toFixed(1)}/{b.max}
                 </span>
               </div>
             ))}
           </div>
-        </div>
-        <div className="panel panel-tight stack" style={{ gap: 8 }}>
+        </section>
+        <section className="panel panel-tight stack stack-sm">
           <h3>Recordes e destaques</h3>
           {!isKeeper && bestGoals > 0 && <div className="headline">⚽ Mais gols numa temporada: {bestGoals}</div>}
           {bestRating > 0 && <div className="headline">📊 Melhor nota média numa temporada: {bestRating.toFixed(2)}</div>}
@@ -128,10 +126,10 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
               🩹 {s.totals.injuries} lesões · {s.totals.gamesInjured} jogos fora
             </div>
           )}
-        </div>
+        </section>
       </div>
 
-      <div className="panel panel-tight stack" style={{ gap: 8 }}>
+      <section className="panel panel-tight stack stack-sm">
         <h3>Clubes</h3>
         {s.clubs.map((c, i) => (
           <div className="spell" key={i}>
@@ -144,7 +142,7 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
                 {c.avgRating > 0 ? c.avgRating.toFixed(2) : '—'} · camisa {c.shirtNumbers.join(', ')}
               </div>
               {c.trophies.length > 0 && (
-                <div className="row" style={{ gap: 4, marginTop: 4 }}>
+                <div className="row" style={{ gap: 4, marginTop: 6 }}>
                   {c.trophies.map((t, j) => (
                     <Pill tone="gold" key={j}>
                       🏆 {t.name} {Number(t.season.slice(0, 4)) + 1}
@@ -155,12 +153,12 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
             </div>
           </div>
         ))}
-      </div>
+      </section>
 
       <div className="grid-2">
-        <div className="panel panel-tight stack" style={{ gap: 8 }}>
+        <section className="panel panel-tight stack stack-sm">
           <h3>Troféus</h3>
-          {groups.length === 0 && <p className="faint">Nenhum título na carreira.</p>}
+          {groups.length === 0 && <p className="empty-inline">🏆 Nenhum título na carreira.</p>}
           <div className="comp-list">
             {groups.map((g) => (
               <div className="comp won" key={`${g.name}|${g.team}`}>
@@ -178,7 +176,7 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
           {s.awards.length > 0 && (
             <>
               <h3 style={{ marginTop: 8 }}>Prêmios individuais</h3>
-              <div className="row" style={{ gap: 6 }}>
+              <div className="row row-tight">
                 {s.awards.map((a, i) => (
                   <Pill tone="purple" key={i}>
                     🥇 {a.name} {Number(a.season.slice(0, 4)) + 1}
@@ -187,16 +185,16 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
               </div>
             </>
           )}
-        </div>
-        <div className="panel panel-tight stack" style={{ gap: 8 }}>
+        </section>
+        <section className="panel panel-tight stack stack-sm">
           <h3>Seleção</h3>
-          <div className="row" style={{ gap: 8 }}>
+          <div className="row row-tight">
             <Flag code={s.player.nationality} />
             <strong>{s.national.country}</strong>
             {s.national.debutSeason && <span className="faint">· estreia em {s.national.debutSeason}</span>}
           </div>
           {s.national.caps === 0 && s.national.callups === 0 ? (
-            <p className="faint">Nunca vestiu a camisa da seleção principal.</p>
+            <p className="empty-inline">🌍 Nunca vestiu a camisa da seleção principal.</p>
           ) : (
             <>
               <div className="faint">
@@ -204,7 +202,7 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
                 {s.national.assists}
               </div>
               {nationalTitles.length > 0 && (
-                <div className="row" style={{ gap: 6 }}>
+                <div className="row row-tight">
                   {nationalTitles.map((t, i) => (
                     <Pill tone="gold" key={i}>
                       {trophyIcon(t.kind)} {t.name} {t.year}
@@ -231,58 +229,31 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
               </div>
             </>
           )}
-        </div>
+        </section>
       </div>
 
-      <div className="panel panel-tight">
+      <section className="panel panel-tight">
         <div className="panel-title">
           <h3>Temporada a temporada</h3>
           <span className="faint">{s.seasons.length}</span>
         </div>
-        <div className="season-list" role="list">
-          <div className="season-row head" aria-hidden="true">
-            <span>Temp.</span>
-            <span>Idade</span>
-            <span>Clube</span>
-            <span className="num">J</span>
-            <span className="num">{isKeeper ? 'SG' : 'G'}</span>
-            <span className="num">A</span>
-            <span className="num">Nota</span>
-            <span className="num">OVR</span>
-          </div>
-          {s.seasons.map((x) => (
-            <div className="season-row" key={x.season} role="listitem">
-              <span className="season-label">{x.season}</span>
-              <span className="age">{x.age} anos</span>
-              <span className="club">
-                <Crest clubId={x.clubId} size="sm" />
-                <span>
-                  {x.clubName}
-                  {x.loan && ' (emp.)'}
-                  <span className="faint">
-                    {' '}
-                    · {x.position}
-                    {x.shirtNumber !== undefined && ` · #${x.shirtNumber}`}
-                  </span>
-                </span>
-              </span>
-              <span className="num" data-label="J">
-                {x.apps}
-              </span>
-              <span className="num" data-label={isKeeper ? 'SG' : 'G'}>
-                {isKeeper ? x.cleanSheets : x.goals}
-              </span>
-              <span className="num" data-label="A">
-                {x.assists}
-              </span>
-              <span className={`num ${ratingClass(x.rating)}`} data-label="Nota">
-                {x.rating > 0 ? x.rating.toFixed(2) : '—'}
-              </span>
-              <span className={`num ${ovrClass(x.ovr)}`} data-label="OVR">
-                {x.ovr}
-              </span>
-              {(x.trophies.length > 0 || x.awards.length > 0 || x.national.calledUp) && (
-                <span className="trophies">
+        <SeasonTable
+          isKeeper={isKeeper}
+          rows={s.seasons.map((x) => ({
+            season: x.season,
+            age: x.age,
+            clubId: x.clubId,
+            clubName: x.clubName,
+            loan: x.loan,
+            detail: `${x.position}${x.shirtNumber !== undefined ? ` · #${x.shirtNumber}` : ''}`,
+            apps: x.apps,
+            main: isKeeper ? x.cleanSheets : x.goals,
+            assists: x.assists,
+            rating: x.rating,
+            ovr: x.ovr,
+            chips:
+              x.trophies.length > 0 || x.awards.length > 0 || x.national.calledUp ? (
+                <>
                   {x.trophies.map((t, i) => (
                     <Pill tone="gold" key={`t${i}`}>
                       🏆 {t}
@@ -298,16 +269,15 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
                       🌍 Seleção: {x.national.caps} J · {x.national.goals} G
                     </Pill>
                   )}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+                </>
+              ) : undefined,
+          }))}
+        />
+      </section>
 
       <div className="grid-2">
-        <div className="panel panel-tight stack" style={{ gap: 8 }}>
-          <div className="panel-title">
+        <section className="panel panel-tight stack stack-sm">
+          <div className="panel-title" style={{ marginBottom: 0 }}>
             <h3>Atributos finais</h3>
             <span className="faint">
               OVR final <strong className={ovrClass(s.evolution.finalOvr)}>{s.evolution.finalOvr}</strong>
@@ -339,19 +309,21 @@ export function CareerSummaryView({ s }: { s: CareerSummary }) {
               </div>
             </>
           )}
-        </div>
+        </section>
         <div className="stack" style={{ alignItems: 'center' }}>
-          <PlayerCard
-            name={s.player.name}
-            nationality={s.player.nationality}
-            position={s.player.position}
-            number={s.player.preferredNumber}
-            ovr={s.evolution.finalOvr}
-            ovrLabel="Final"
-            attributes={s.evolution.finalAttributes}
-            style={s.evolution.style}
-          />
-          <p className="faint">
+          <div className="card-stage">
+            <PlayerCard
+              name={s.player.name}
+              nationality={s.player.nationality}
+              position={s.player.position}
+              number={s.player.preferredNumber}
+              ovr={s.evolution.finalOvr}
+              ovrLabel="Final"
+              attributes={s.evolution.finalAttributes}
+              style={s.evolution.style}
+            />
+          </div>
+          <p className="faint center">
             Atributos finais · OVR final {s.evolution.finalOvr} · pico {s.evolution.peakOvr}
           </p>
         </div>
@@ -365,8 +337,8 @@ function LegacyHero({ s, retiring }: { s: CareerSummary; retiring: boolean }) {
   return (
     <div className="legacy-hero">
       <div className="eyebrow">{retiring ? 'Fim de carreira' : 'Carreira salva'}</div>
-      <h1 style={{ fontSize: 'clamp(2.2rem, 9vw, 4rem)', textTransform: 'uppercase' }}>{p.name}</h1>
-      <div className="row" style={{ justifyContent: 'center' }}>
+      <h1 className="legacy-name">{p.name}</h1>
+      <div className="row row-tight" style={{ justifyContent: 'center' }}>
         <Flag code={p.nationality} />
         <span className="muted">
           {getCountry(p.nationality).name} · {POSITIONS[p.position].label} · {p.startAge} → {p.retirementAge} anos · {p.careerYears} temporada
@@ -381,7 +353,7 @@ function LegacyHero({ s, retiring }: { s: CareerSummary; retiring: boolean }) {
         </div>
       </div>
       <div className="legacy-tier">{s.legacy.tier}</div>
-      <p className="muted" style={{ maxWidth: 520 }}>
+      <p className="muted" style={{ maxWidth: 540 }}>
         {s.legacy.tierDescription}
       </p>
       <p className="faint">
@@ -407,41 +379,53 @@ function RetirementActions({ career, compact = false }: { career: Career; compac
     return r;
   };
 
+  const saveLabel = busy ? (
+    <>
+      <Spinner /> Salvando…
+    </>
+  ) : (
+    '💾 Salvar carreira'
+  );
+
   return (
     <>
-      {result && <div className={`banner ${result.ok && result.cloud !== false ? 'banner-green' : 'banner-gold'}`}>{result.message}</div>}
+      {result && (
+        <Banner tone={result.ok && result.cloud !== false ? 'green' : 'gold'} icon={result.ok ? '✓' : '⚠️'} role="status">
+          {result.message}
+        </Banner>
+      )}
       {!saved && !result && (
-        <div className="banner banner-gold">
-          <span className="banner-icon" aria-hidden="true">
-            📜
-          </span>
-          <span style={{ flex: 1 }}>
-            A carreira foi encerrada. Salve para guardar o resumo completo no histórico
-            {cloudAvailable ? (user ? ' e na sua conta' : ' (entre na sua conta para guardar também na nuvem)') : ''}.
-          </span>
-          {compact && (
-            <button className="btn btn-sm btn-gold" disabled={busy} onClick={() => void save()}>
-              {busy ? 'Salvando…' : '💾 Salvar carreira'}
-            </button>
-          )}
-        </div>
+        <Banner
+          tone="gold"
+          icon="📜"
+          actions={
+            compact ? (
+              <button className="btn btn-sm btn-gold" disabled={busy} onClick={() => void save()}>
+                {saveLabel}
+              </button>
+            ) : undefined
+          }
+        >
+          A carreira foi encerrada. Salve para guardar o resumo completo no histórico
+          {cloudAvailable ? (user ? ' e na sua conta' : ' (entre na sua conta para guardar também na nuvem)') : ''}.
+        </Banner>
       )}
       {!compact && (
-      <div className="action-bar">
-        {!saved ? (
-          <button className="btn btn-gold btn-xl" disabled={busy} onClick={() => void save()}>
-            {busy ? 'Salvando…' : '💾 Salvar carreira'}
+        <div className="action-bar">
+          {!saved ? (
+            <button className="btn btn-gold btn-xl" disabled={busy} onClick={() => void save()}>
+              {saveLabel}
+            </button>
+          ) : (
+            <Pill tone="green">✓ Carreira salva no histórico</Pill>
+          )}
+          <button className={`btn ${saved ? 'btn-primary btn-xl' : ''}`} onClick={() => (saved ? goCreate() : setAskNew(true))}>
+            Nova carreira
           </button>
-        ) : (
-          <Pill tone="green">✓ Carreira salva no histórico</Pill>
-        )}
-        <button className={`btn ${saved ? 'btn-primary btn-xl' : ''}`} onClick={() => (saved ? goCreate() : setAskNew(true))}>
-          Nova carreira
-        </button>
-        <button className="btn" onClick={goHistory}>
-          Minhas carreiras
-        </button>
-      </div>
+          <button className="btn" onClick={goHistory}>
+            Minhas carreiras
+          </button>
+        </div>
       )}
       {askNew && (
         <Modal

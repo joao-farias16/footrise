@@ -15,6 +15,8 @@ const TAG_LABEL: Record<string, { text: string; tone: PillTone }> = {
   injury: { text: '🩹 Lesão', tone: 'red' },
 };
 
+const CHOICE_KEYS = ['A', 'B', 'C', 'D', 'E'];
+
 export function EventScreen({ career }: { career: Career }) {
   const { act } = useGame();
   const instance = career.events[career.eventIndex];
@@ -38,17 +40,25 @@ export function EventScreen({ career }: { career: Career }) {
       <TopBar />
       <main className="page page-narrow">
         <div className="event-card" key={`${career.eventIndex}`}>
-          <div className="row between">
-            <div className="eyebrow">
-              Pré-temporada {seasonLabel(career.year)} · evento {career.eventIndex + 1} de {career.events.length}
+          <div className="stack stack-sm">
+            <div className="row between">
+              <div className="eyebrow">
+                Pré-temporada {seasonLabel(career.year)} · evento {career.eventIndex + 1} de {career.events.length}
+              </div>
+              <Pill>{view.category}</Pill>
             </div>
-            <Pill>{view.category}</Pill>
+            <div className="event-progress" aria-hidden="true">
+              {career.events.map((_, i) => (
+                <span key={i} className={i < career.eventIndex ? 'done' : i === career.eventIndex ? 'now' : ''} />
+              ))}
+            </div>
           </div>
-          <div className="row" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+
+          <div className="panel event-story">
             <div className="event-icon" aria-hidden="true">
               {view.icon}
             </div>
-            <div className="stack" style={{ gap: 8 }}>
+            <div className="stack stack-sm" style={{ minWidth: 0 }}>
               <h2>{view.title}</h2>
               <p className="muted" style={{ fontSize: '1.05rem' }}>
                 {view.text}
@@ -57,11 +67,14 @@ export function EventScreen({ career }: { career: Career }) {
           </div>
 
           {!resolved && (
-            <div className="stack" style={{ gap: 10 }} role="group" aria-label="Escolhas">
+            <div className="choice-list" role="group" aria-label="Escolhas">
               {view.choices.map((ch, i) => (
                 <button key={i} className="choice-btn" onClick={() => act((c) => chooseEventOption(c, i))}>
+                  <span className="choice-key" aria-hidden="true">
+                    {CHOICE_KEYS[i] ?? i + 1}
+                  </span>
                   <strong>{ch.label}</strong>
-                  <span>{ch.hint}</span>
+                  <span className="choice-hint">{ch.hint}</span>
                 </button>
               ))}
             </div>
@@ -75,7 +88,7 @@ export function EventScreen({ career }: { career: Career }) {
                 </div>
                 <p style={{ fontSize: '1.05rem', fontWeight: 600 }}>{resolved.text}</p>
                 {resolved.tags.length > 0 && (
-                  <div className="row" style={{ marginTop: 10, gap: 6 }}>
+                  <div className="row row-tight" style={{ marginTop: 12 }}>
                     {[...new Set(resolved.tags)].map((t) => (
                       <Pill key={t} tone={TAG_LABEL[t]?.tone ?? 'neutral'}>
                         {TAG_LABEL[t]?.text ?? t}
@@ -84,9 +97,11 @@ export function EventScreen({ career }: { career: Career }) {
                   </div>
                 )}
               </div>
-              <button className="btn btn-primary btn-xl btn-block" onClick={() => act(continueAfterEvent)}>
-                {isLast ? '▶ Simular temporada' : 'Próximo evento →'}
-              </button>
+              <div className="action-bar">
+                <button className="btn btn-primary btn-xl" onClick={() => act(continueAfterEvent)}>
+                  {isLast ? '▶ Simular temporada' : 'Próximo evento →'}
+                </button>
+              </div>
             </>
           )}
         </div>

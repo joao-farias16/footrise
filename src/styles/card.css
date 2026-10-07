@@ -1,0 +1,215 @@
+/* ==========================================================================
+   Carta do jogador
+   Formato de carta colecionável (cantos chanfrados e base em ponta). O recorte é
+   feito com clip-path — por isso o overflow fica visível e a carta cresce se o
+   conteúdo precisar, em vez de cortar atributos em celulares estreitos.
+   ========================================================================== */
+
+.fr-card {
+  --card-a: #2b3d36;
+  --card-b: #0f1a16;
+  --card-ink: #f4f8f6;
+  --card-line: rgba(255, 255, 255, 0.28);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 7.3;
+  padding: 24px 24px 54px;
+  color: var(--card-ink);
+  background:
+    radial-gradient(120% 60% at 85% 0%, rgba(255, 255, 255, 0.28), transparent 55%),
+    linear-gradient(165deg, var(--card-a), var(--card-b));
+  clip-path: polygon(7% 0, 93% 0, 100% 5%, 100% 89%, 50% 100%, 0 89%, 0 5%);
+  display: flex;
+  flex-direction: column;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* A sombra fica no invólucro: o clip-path da carta cortaria a própria sombra. */
+.fr-card-wrap {
+  width: min(330px, 100%);
+  margin: 0 auto;
+  filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.6));
+}
+
+/* Brilho que passa pela carta de tempos em tempos. */
+.fr-card::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.24) 50%, transparent 58%);
+  transform: translateX(-60%);
+  animation: shine 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Linhas de textura (como o verso de uma carta impressa). */
+.fr-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 9px);
+  pointer-events: none;
+}
+
+.fr-card > * {
+  position: relative;
+}
+
+.fr-card.tier-bronze-card {
+  --card-a: #c07a3e;
+  --card-b: #3a200d;
+}
+
+.fr-card.tier-silver-card {
+  --card-a: #8e9cad;
+  --card-b: #252d37;
+}
+
+.fr-card.tier-gold-card {
+  --card-a: #f0c443;
+  --card-b: #5c3a05;
+  --card-ink: #fffaf0;
+}
+
+.fr-card.tier-elite-card {
+  --card-ink: #ffffff;
+  background:
+    radial-gradient(120% 60% at 85% 0%, rgba(255, 255, 255, 0.32), transparent 55%),
+    radial-gradient(90% 60% at 10% 100%, rgba(212, 255, 58, 0.35), transparent 60%),
+    conic-gradient(from 210deg at 70% 28%, #d4ff3a, #34e39a, #52c7ff, #a990ff, #ffcb4d, #d4ff3a);
+}
+
+.fr-card.tier-elite-card .fr-card-body {
+  background: rgba(5, 11, 9, 0.6);
+  border-radius: 14px;
+  padding: 10px 12px;
+  backdrop-filter: blur(2px);
+}
+
+.fr-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.fr-card-ovr {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 4.3rem;
+  line-height: 0.82;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.fr-card-label {
+  margin-top: 4px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.fr-card-pos {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.fr-card-flag {
+  margin-top: 6px;
+  font-size: 1.5rem;
+}
+
+.fr-card-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.fr-card-number {
+  position: absolute;
+  right: 20px;
+  top: 58px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 6.5rem;
+  line-height: 1;
+  opacity: 0.13;
+}
+
+.fr-card-body {
+  margin-top: auto;
+}
+
+.fr-card-name {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 6.5vw, 2rem);
+  text-transform: uppercase;
+  line-height: 1;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--card-line);
+  overflow-wrap: anywhere;
+}
+
+.fr-card-style {
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin: 6px 0 8px;
+}
+
+.fr-card-attrs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 20px;
+}
+
+.fr-card-attr {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.fr-card-attr b {
+  font-size: 1.45rem;
+}
+
+.fr-card-attr span {
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+}
+
+.card-reveal {
+  animation: card-reveal 0.9s var(--ease-spring) both;
+}
+
+/* Palco: luz de refletor atrás da carta. */
+.card-stage {
+  position: relative;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  padding: 8px 0 4px;
+}
+
+.card-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 5%;
+  background: radial-gradient(closest-side, rgba(212, 255, 58, 0.16), transparent);
+  filter: blur(8px);
+  pointer-events: none;
+}

@@ -33,8 +33,11 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     return (
       <main className="home">
         <div className="home-inner panel">
-          <h2>Algo saiu do roteiro</h2>
-          <p className="muted">Um erro inesperado aconteceu. Seu histórico de carreiras continua salvo.</p>
+          <span className="empty-state-icon" aria-hidden="true" style={{ alignSelf: 'center' }}>
+            ⚠️
+          </span>
+          <h2 className="center">Algo saiu do roteiro</h2>
+          <p className="muted center">Um erro inesperado aconteceu. Seu histórico de carreiras continua salvo.</p>
           <button className="btn btn-primary btn-block" onClick={this.reload}>
             Recarregar
           </button>
